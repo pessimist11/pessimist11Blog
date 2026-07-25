@@ -2,96 +2,116 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
-const sections = [
-  { slug: 'zhi', name: '知', subtitle: '知识 / 技术', desc: '探索技术世界，记录学习历程' },
-  { slug: 'si', name: '思', subtitle: '思考 / 感悟', desc: '内心随笔，生活感悟' },
-  { slug: 'zhen', name: '帧', subtitle: '定格 / 瞬间', desc: '旅途中收藏的时间切片' },
-  { slug: 'fu', name: '馥', subtitle: '香气 / 审美', desc: '嗅觉记录与审美体验' },
-];
+const zhi = await getCollection('zhi');
+const si = await getCollection('si');
+const zhen = await getCollection('zhen');
+const fu = await getCollection('fu');
 
-// Latest posts for recent section
-const allPosts = (await Promise.all(
-  sections.map(async s => {
-    const posts = await getCollection(s.slug);
-    return posts.map(p => ({ ...p, category: s }));
-  })
-)).flat().sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 6);
+const zhiPosts = zhi.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
+const siPosts = si.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
+const fuPosts = fu.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 
-// Photo previews for 帧 section
-const photos = await getCollection('zhen');
-const latestPhotos = photos.slice(0, 4);
+const zhenFeatured = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 1);
+const zhenGrid = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 4);
 
-// Placeholder photo URLs (Unsplash free)
-const photoPlaceholders = [
-  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&h=400&fit=crop',
-];
+function slug(id: string) {
+  return id.replace(/\.(md|mdx)$/, '');
+}
 ---
 
-<BaseLayout title="首页">
-  <section class="hero">
-    <div class="hero-content">
-      <div>
-        <div class="hero-kicker">Personal Journal</div>
-        <h1>pessimist11</h1>
-        <p class="hero-desc">知 · 思 · 帧 · 馥</p>
-        <p class="hero-sub">关于技术、生活、旅行与气味的一些记录。</p>
+<BaseLayout title="Home">
+  <section class="hero reveal">
+    <h1 class="hero-name">PESSIMIST11</h1>
+    <p class="hero-tagline">记录技术、思想与旅途中的瞬间</p>
+  </section>
+
+  {zhenFeatured.length > 0 && (
+    <div class="feature-photo reveal">
+      <div class="feature-photo-inner">
+        <a href={`/zhen/${slug(zhenFeatured[0].id)}/`}>
+          <img src="/placeholder.jpg" alt={zhenFeatured[0].data.title} loading="lazy" />
+        </a>
       </div>
-      <aside class="hero-aside" aria-label="站点简介">
-        <p class="hero-quote">记录即抵抗遗忘。</p>
-        <p class="hero-meta">A quiet index of notes, images, thoughts and scents. Updated irregularly.</p>
-      </aside>
     </div>
+  )}
+
+  <section class="home-section reveal" id="tech">
+    <div class="home-section-heading">
+      <div class="home-section-en">Technology</div>
+      <h2 class="home-section-zh">技术</h2>
+    </div>
+    <ul class="magazine-list">
+      {zhiPosts.map(post => (
+        <li class="magazine-item">
+          <a href={`/zhi/${slug(post.id)}/`}>
+            <div class="magazine-date">
+              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+            <div class="magazine-content">
+              <div class="magazine-title">{post.data.title}</div>
+              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
   </section>
 
-  <section class="section-grid" aria-label="栏目">
-    {sections.map((s, index) => (
-      <a href={`/${s.slug}/`} class="section-card">
-        <div class="card-index">{String(index + 1).padStart(2, '0')}</div>
-        <div class="card-content">
-          <h2>{s.name}</h2>
-          <div class="subtitle">{s.subtitle}</div>
-          <div class="desc">{s.desc}</div>
-        </div>
-        <div class="card-arrow" aria-hidden="true">→</div>
-      </a>
-    ))}
+  <section class="home-section reveal" id="journal">
+    <div class="home-section-heading">
+      <div class="home-section-en">Journal</div>
+      <h2 class="home-section-zh">随笔</h2>
+    </div>
+    <ul class="magazine-list">
+      {siPosts.map(post => (
+        <li class="magazine-item">
+          <a href={`/si/${slug(post.id)}/`}>
+            <div class="magazine-date">
+              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+            <div class="magazine-content">
+              <div class="magazine-title">{post.data.title}</div>
+              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
   </section>
 
-  <section class="photo-strip">
-    <div class="photo-strip-header">
-      <h2>Recent Frames</h2>
-      <a href="/zhen/" class="photo-strip-link">查看全部</a>
+  <section class="home-section reveal" id="travel">
+    <div class="home-section-heading">
+      <div class="home-section-en">Travel</div>
+      <h2 class="home-section-zh">旅行</h2>
     </div>
     <div class="photo-grid">
-      {photoPlaceholders.map((url, i) => (
-        <a href="/zhen/" class="photo-item">
-          <img src={url} alt={`摄影作品 ${i + 1}`} loading="lazy" />
-          <div class="photo-overlay">Frame {String(i + 1).padStart(2, '0')}</div>
+      {zhenGrid.map(post => (
+        <a href={`/zhen/${slug(post.id)}/`} class="photo-grid-item">
+          <img src="/placeholder.jpg" alt={post.data.title} loading="lazy" />
         </a>
       ))}
     </div>
   </section>
 
-  <h2 class="section-heading"><span>Recent Notes</span></h2>
-  <ul class="post-list">
-    {allPosts.map(post => (
-      <li class="post-item">
-        <a href={`/${post.category.slug}/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-          <div class="post-meta">
-            <span class="post-category">{post.category.name}</span>
-            <time datetime={post.data.pubDate.toISOString()}>
-              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </time>
-          </div>
-          <div>
-            <div class="post-title">{post.data.title}</div>
-            {post.data.description && <div class="post-desc">{post.data.description}</div>}
-          </div>
-        </a>
-      </li>
-    ))}
-  </ul>
+  <section class="home-section reveal" id="scent">
+    <div class="home-section-heading">
+      <div class="home-section-en">Scent</div>
+      <h2 class="home-section-zh">香气</h2>
+    </div>
+    <ul class="magazine-list">
+      {fuPosts.map(post => (
+        <li class="magazine-item">
+          <a href={`/fu/${slug(post.id)}/`}>
+            <div class="magazine-date">
+              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+            <div class="magazine-content">
+              <div class="magazine-title">{post.data.title}</div>
+              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
 </BaseLayout>
