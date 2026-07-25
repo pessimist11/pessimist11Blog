@@ -88,13 +88,12 @@ nav {
   right: 0;
   z-index: 100;
   height: var(--nav-height);
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: #e8e0d2;
   border-bottom: 1px solid var(--border);
 }
 
 [data-theme="dark"] nav {
-  background: rgba(17, 17, 17, 0.9);
+  background: #1a1a1a;
 }
 
 .nav-inner {
@@ -109,7 +108,7 @@ nav {
 }
 
 .nav-title {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.06em;
   white-space: nowrap;
@@ -125,7 +124,7 @@ nav {
   display: inline-block;
   padding: 6px 10px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 500;
   color: var(--text-muted);
   transition: color 0.2s ease, background 0.2s ease;
@@ -158,6 +157,8 @@ nav {
 
 /* Main */
 main {
+  position: relative;
+  z-index: 1;
   min-height: calc(100vh - var(--nav-height) - 80px);
   padding-top: var(--nav-height);
 }
@@ -558,12 +559,12 @@ footer {
   }
 
   .nav-title {
-    font-size: 13px;
+    font-size: 16px;
   }
 
   .nav-links a {
     padding: 6px 8px;
-    font-size: 13px;
+    font-size: 16px;
   }
 
   .hero {
@@ -629,8 +630,8 @@ footer {
   border-radius: 4px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
 }
-/* ========== 首页水印 ========== */
-.home-watermark {
+/* ========== 全站水印 ========== */
+.watermark {
   position: fixed;
   inset: 0;
   display: flex;
@@ -647,13 +648,7 @@ footer {
   font-family: var(--font-body);
 }
 
-[data-theme="dark"] .home-watermark {
+[data-theme="dark"] .watermark {
   color: rgba(255, 255, 255, 0.025);
-}
-
-.home-content {
-  position: relative;
-  z-index: 1;
-  font-size: 18px;
 }
 
