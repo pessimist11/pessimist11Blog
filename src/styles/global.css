@@ -1,8 +1,8 @@
 /* PESSIMIST11 — Minimal Editorial Portfolio */
 :root {
   color-scheme: light;
-  --bg: #ffffff;
-  --bg-alt: #f6f6f6;
+  --bg: #f3efe8;
+  --bg-alt: #ebe6df;
   --surface: #ffffff;
   --text: #1a1a1a;
   --text-muted: #7a7a7a;
@@ -178,7 +178,7 @@ main {
 }
 
 .hero-tagline {
-  font-size: clamp(15px, 2vw, 18px);
+  font-size: clamp(16px, 2.2vw, 20px);
   color: var(--text-muted);
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -207,7 +207,7 @@ main {
 }
 
 .home-section-zh {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 500;
   letter-spacing: 0.04em;
 }
@@ -218,11 +218,11 @@ main {
 }
 
 .magazine-item {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #000;
 }
 
 .magazine-item:first-child {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #000;
 }
 
 .magazine-item a {
@@ -234,7 +234,7 @@ main {
 }
 
 .magazine-date {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-faint);
   font-family: var(--font-body);
   line-height: 1.6;
@@ -245,7 +245,7 @@ main {
 }
 
 .magazine-title {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 500;
   line-height: 1.45;
   margin-bottom: 4px;
@@ -257,7 +257,7 @@ main {
 }
 
 .magazine-desc {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-muted);
   line-height: 1.6;
 }
@@ -629,3 +629,31 @@ footer {
   border-radius: 4px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
 }
+/* ========== 首页水印 ========== */
+.home-watermark {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(100px, 18vw, 360px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.035);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  line-height: 1;
+  font-family: var(--font-body);
+}
+
+[data-theme="dark"] .home-watermark {
+  color: rgba(255, 255, 255, 0.025);
+}
+
+.home-content {
+  position: relative;
+  z-index: 1;
+  font-size: 18px;
+}
+
