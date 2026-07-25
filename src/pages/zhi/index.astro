@@ -2,37 +2,29 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
-const pageTitle = '知 · 技术分享';
-
 const posts = await getCollection('zhi');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 ---
 
-<BaseLayout title={pageTitle}>
-  <div class="page-header">
-    <div class="page-kicker">Knowledge</div>
-    <div>
-      <h1>知</h1>
-      <div class="page-desc">知识、认知、探索技术世界</div>
+<BaseLayout title="TECH">
+  <div class="page-wrap reveal">
+    <div class="page-heading">
+      <h1 class="page-heading-zh">知</h1>
     </div>
+    <ul class="magazine-list reveal">
+      {sorted.map(post => (
+        <li class="magazine-item">
+          <a href={`/zhi/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
+            <div class="magazine-date">
+              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
+            </div>
+            <div class="magazine-content">
+              <div class="magazine-title">{post.data.title}</div>
+              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
   </div>
-
-  <ul class="post-list">
-    {sorted.map(post => (
-      <li class="post-item">
-        <a href={`/zhi/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-          <div class="post-meta">
-            <time datetime={post.data.pubDate.toISOString()}>
-              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </time>
-            {post.data.tags && ` · ${post.data.tags.join(' · ')}`}
-          </div>
-          <div>
-            <div class="post-title">{post.data.title}</div>
-            {post.data.description && <div class="post-desc">{post.data.description}</div>}
-          </div>
-        </a>
-      </li>
-    ))}
-  </ul>
 </BaseLayout>
