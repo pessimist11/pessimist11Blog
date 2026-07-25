@@ -39,7 +39,7 @@ const allPosts = (await Promise.all(
   <ul class="post-list">
     {allPosts.map(post => (
       <li class="post-item">
-        <a href={`/${post.category.slug}/${post.id}/`}>
+        <a href={`/${post.category.slug}/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
           <div class="post-title">
             <span class="post-category">{post.category.emoji}</span>
             {post.data.title}

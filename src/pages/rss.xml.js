@@ -17,7 +17,7 @@ export async function GET(context) {
       title: `[${post.emoji}${post.category}] ${post.data.title}`,
       pubDate: post.data.pubDate,
       description: post.data.description,
-      link: `/${post.collection}/${post.id}/`,
+      link: `/${post.collection}/${post.id.replace(/\.(md|mdx)$/, '')}/`,
     })),
   });
 }

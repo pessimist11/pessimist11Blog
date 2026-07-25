@@ -17,7 +17,7 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
   <ul class="post-list">
     {sorted.map(post => (
       <li class="post-item">
-        <a href={`/fu/${post.id}/`}>
+        <a href={`/fu/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
           <div class="post-title">{post.data.title}</div>
           <div class="post-meta">
             <time datetime={post.data.pubDate.toISOString()}>
