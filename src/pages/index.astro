@@ -11,17 +11,13 @@ const zhiPosts = zhi.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
 const siPosts = si.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 const fuPosts = fu.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 
-const zhenFeatured = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 1);
-const zhenGrid = zhen
-  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime())
-  .slice(0, 2);
+const zhenPosts = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 
 // 收集帧文章的所有封面照片，构建时随机打乱
 const allPhotos = zhen
   .flatMap(p => (p.data.coverImages?.length ? p.data.coverImages : p.data.coverImage ? [p.data.coverImage] : []))
   .sort(() => Math.random() - 0.5);
 const featuredPhoto = allPhotos[0] || '/gallery/nanjing/DSCF0876.JPG';
-const gridPhotos = allPhotos.slice(1, 3);
 
 function slug(id: string) {
   return id.replace(/\.(md|mdx)$/, '');
@@ -29,8 +25,6 @@ function slug(id: string) {
 ---
 
 <BaseLayout title="首页">
-  <div class="home-watermark" aria-hidden="true">pessimist11</div>
-  <div class="home-content">
     <section class="hero reveal">
     <h1 class="hero-name">PESSIMIST11</h1>
     <p class="hero-tagline">记录技术、思想与旅途中的瞬间</p>
@@ -88,13 +82,21 @@ function slug(id: string) {
     <div class="home-section-heading">
       <h2 class="home-section-zh">帧</h2>
     </div>
-    <div class="photo-grid">
-      {gridPhotos.map((photo, i) => (
-        <a href="/zhen/" class="photo-grid-item">
-          <img src={photo} alt={`旅行摄影 ${i + 1}`} loading="lazy" />
-        </a>
+    <ul class="magazine-list">
+      {zhenPosts.map(post => (
+        <li class="magazine-item">
+          <a href={`/zhen/${slug(post.id)}/`}>
+            <div class="magazine-date">
+              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+            <div class="magazine-content">
+              <div class="magazine-title">{post.data.title}</div>
+              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+            </div>
+          </a>
+        </li>
       ))}
-    </div>
+    </ul>
   </section>
 
   <section class="home-section reveal">
@@ -117,5 +119,4 @@ function slug(id: string) {
       ))}
     </ul>
   </section>
-  </div><!-- /home-content -->
 </BaseLayout>
