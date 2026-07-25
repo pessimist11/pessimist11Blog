@@ -1,0 +1,33 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const pageTitle = '思 · 随笔感悟';
+
+const posts = await getCollection('si');
+const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+---
+
+<BaseLayout title={pageTitle}>
+  <div class="page-header">
+    <h1>📝 思</h1>
+    <div class="page-desc">思考、感悟、内心记录</div>
+  </div>
+
+  <ul class="post-list">
+    {sorted.map(post => (
+      <li class="post-item">
+        <a href={`/si/${post.id}/`}>
+          <div class="post-title">{post.data.title}</div>
+          <div class="post-meta">
+            <time datetime={post.data.pubDate.toISOString()}>
+              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+            {post.data.tags && ` · ${post.data.tags.join(' · ')}`}
+          </div>
+          {post.data.description && <div class="post-desc">{post.data.description}</div>}
+        </a>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

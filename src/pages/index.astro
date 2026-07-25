@@ -1,0 +1,57 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const sections = [
+  { slug: 'zhi', emoji: '📘', name: '知', subtitle: '知识·技术', desc: '探索技术世界，记录学习历程' },
+  { slug: 'si', emoji: '📝', name: '思', subtitle: '思考·感悟', desc: '内心随笔，生活感悟' },
+  { slug: 'zhen', emoji: '📷', name: '帧', subtitle: '定格·瞬间', desc: '旅途中收藏的时间切片' },
+  { slug: 'fu', emoji: '🌸', name: '馥', subtitle: '香气·审美', desc: '嗅觉记录与审美体验' },
+];
+
+// Get latest 3 posts from each section for the "recent" section
+const allPosts = (await Promise.all(
+  sections.map(async s => {
+    const posts = await getCollection(s.slug);
+    return posts.map(p => ({ ...p, category: s }));
+  })
+)).flat().sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 6);
+---
+
+<BaseLayout title="首页">
+  <div class="hero">
+    <h1>pessimist11</h1>
+    <p>关于技术、生活、旅行与气味的一些记录。</p>
+  </div>
+
+  <div class="section-grid">
+    {sections.map(s => (
+      <a href={`/${s.slug}/`} class="section-card">
+        <div class="emoji">{s.emoji}</div>
+        <h2>{s.name}</h2>
+        <div class="subtitle">{s.subtitle}</div>
+        <div class="desc">{s.desc}</div>
+      </a>
+    ))}
+  </div>
+
+  <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">📌 近期更新</h2>
+  <ul class="post-list">
+    {allPosts.map(post => (
+      <li class="post-item">
+        <a href={`/${post.category.slug}/${post.id}/`}>
+          <div class="post-title">
+            <span class="post-category">{post.category.emoji}</span>
+            {post.data.title}
+          </div>
+          <div class="post-meta">
+            <time datetime={post.data.pubDate.toISOString()}>
+              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+          </div>
+          {post.data.description && <div class="post-desc">{post.data.description}</div>}
+        </a>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

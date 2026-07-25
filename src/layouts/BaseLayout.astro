@@ -1,0 +1,58 @@
+---
+import '@/styles/global.css';
+
+export interface Props {
+  title: string;
+  pageTitle?: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Pessimist11 的个人博客 — 知·思·帧·馥" />
+    <title>{title} — pessimist11</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title="pessimist11" href="/rss.xml" />
+  </head>
+  <body>
+    <nav>
+      <div class="nav-inner">
+        <a href="/" class="nav-title">pessimist11</a>
+        <div class="nav-links">
+          <a href="/zhi/">知</a>
+          <a href="/si/">思</a>
+          <a href="/zhen/">帧</a>
+          <a href="/fu/">馥</a>
+          <button class="theme-toggle" id="themeToggle" aria-label="切换主题">🌓</button>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer>
+      <p>&copy; {new Date().getFullYear()} pessimist11. Powered by Astro &amp; Cloudflare Pages.</p>
+    </footer>
+
+    <script>
+      const toggle = document.getElementById('themeToggle');
+      const html = document.documentElement;
+      const stored = localStorage.getItem('theme');
+      if (stored) html.setAttribute('data-theme', stored);
+
+      toggle?.addEventListener('click', () => {
+        const current = html.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      });
+    </script>
+  </body>
+</html>

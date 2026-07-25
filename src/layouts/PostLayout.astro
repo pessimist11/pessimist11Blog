@@ -1,0 +1,40 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+export interface Props {
+  title: string;
+  pubDate: Date;
+  tags?: string[];
+  description?: string;
+  categoryName: string;
+  categoryEmoji: string;
+}
+
+const { title, pubDate, tags, description, categoryName, categoryEmoji } = Astro.props;
+---
+
+<BaseLayout title={title}>
+  <article>
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-category">{categoryEmoji} {categoryName}</span>
+        <time datetime={pubDate.toISOString()}>
+          {pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </time>
+      </div>
+      <h1 class="post-title">{title}</h1>
+      {description && <p style="color: var(--text-muted); font-size: 15px; margin-top: 8px;">{description}</p>}
+      {tags && tags.length > 0 && (
+        <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
+          {tags.map(tag => (
+            <span style="font-size: 12px; background: var(--bg-alt); padding: 2px 8px; border-radius: 4px; color: var(--text-muted);">#{tag}</span>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <div class="post-body">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>

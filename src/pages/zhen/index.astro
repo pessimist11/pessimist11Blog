@@ -1,0 +1,34 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const pageTitle = '帧 · 旅行摄影';
+
+const posts = await getCollection('zhen');
+const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+---
+
+<BaseLayout title={pageTitle}>
+  <div class="page-header">
+    <h1>📷 帧</h1>
+    <div class="page-desc">定格旅途瞬间，收藏时间切片</div>
+  </div>
+
+  <ul class="post-list">
+    {sorted.map(post => (
+      <li class="post-item">
+        <a href={`/zhen/${post.id}/`}>
+          <div class="post-title">{post.data.title}</div>
+          <div class="post-meta">
+            <time datetime={post.data.pubDate.toISOString()}>
+              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+            {post.data.location && ` · ${post.data.location}`}
+            {post.data.camera && ` · 📸 ${post.data.camera}`}
+          </div>
+          {post.data.description && <div class="post-desc">{post.data.description}</div>}
+        </a>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>
