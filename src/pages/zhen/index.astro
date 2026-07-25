@@ -2,41 +2,38 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
+const pageTitle = '帧 · 旅行摄影';
+
 const posts = await getCollection('zhen');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 ---
 
-<BaseLayout title="TRAVEL">
-  <div class="page-wrap">
-    <div class="page-heading reveal">
-      <div class="page-heading-en">Travel</div>
-      <h1 class="page-heading-zh">旅行</h1>
-    </div>
-    <div class="reveal">
-      <div class="photo-grid">
-        {sorted.map(post => (
-          <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`} class="photo-grid-item">
-            <img src="/placeholder.jpg" alt={post.data.title} loading="lazy" />
-          </a>
-        ))}
-      </div>
-      <ul class="magazine-list" style="margin-top:32px">
-        {sorted.map(post => (
-          <li class="magazine-item">
-            <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-              <div class="magazine-date">
-                {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
-                {post.data.location && <br />}
-                {post.data.location}
-              </div>
-              <div class="magazine-content">
-                <div class="magazine-title">{post.data.title}</div>
-                {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
-              </div>
-            </a>
-          </li>
-        ))}
-      </ul>
+<BaseLayout title={pageTitle}>
+  <div class="page-header">
+    <div class="page-kicker">Frames</div>
+    <div>
+      <h1>帧</h1>
+      <div class="page-desc">定格旅途瞬间，收藏时间切片</div>
     </div>
   </div>
+
+  <ul class="post-list">
+    {sorted.map(post => (
+      <li class="post-item">
+        <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
+          <div class="post-meta">
+            <time datetime={post.data.pubDate.toISOString()}>
+              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+            {post.data.location && ` · ${post.data.location}`}
+            {post.data.camera && ` · 📸 ${post.data.camera}`}
+          </div>
+          <div>
+            <div class="post-title">{post.data.title}</div>
+            {post.data.description && <div class="post-desc">{post.data.description}</div>}
+          </div>
+        </a>
+      </li>
+    ))}
+  </ul>
 </BaseLayout>

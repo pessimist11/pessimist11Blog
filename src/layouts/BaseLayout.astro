@@ -1,38 +1,34 @@
 ---
+import '@/styles/global.css';
+
 export interface Props {
-  title?: string;
+  title: string;
+  pageTitle?: string;
 }
 
 const { title } = Astro.props;
-const pageTitle = title ? `${title} — pessimist11` : 'pessimist11';
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Pessimist11 的个人博客 — 知·思·帧·馥" />
+    <title>{title} — pessimist11</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{pageTitle}</title>
-    <link rel="canonical" href="https://pessimist11.pages.dev" />
     <link rel="alternate" type="application/rss+xml" title="pessimist11" href="/rss.xml" />
-    <meta name="description" content="记录技术、思想与旅途中的瞬间" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/src/styles/global.css" />
   </head>
   <body>
     <nav>
       <div class="nav-inner">
-        <a href="/" class="nav-logo">PESSIMIST11</a>
+        <a href="/" class="nav-title">pessimist11</a>
         <div class="nav-links">
-          <a href="/zhi/">TECH</a>
-          <a href="/si/">JOURNAL</a>
-          <a href="/zhen/">TRAVEL</a>
-          <a href="/fu/">SCENT</a>
-          <a href="/about/">ABOUT</a>
-          <button class="theme-toggle" id="themeToggle" aria-label="切换主题">○</button>
+          <a href="/zhi/">知</a>
+          <a href="/si/">思</a>
+          <a href="/zhen/">帧</a>
+          <a href="/fu/">馥</a>
+          <button class="theme-toggle" id="themeToggle" aria-label="切换主题">🌓</button>
         </div>
       </div>
     </nav>
@@ -42,49 +38,25 @@ const pageTitle = title ? `${title} — pessimist11` : 'pessimist11';
     </main>
 
     <footer>
-      <div class="footer-inner">
-        <div class="footer-left">
-          &copy; {new Date().getFullYear()} pessimist11
-        </div>
-        <div class="footer-right">
-          <a href="https://github.com/pessimist11" target="_blank" rel="noopener">GitHub</a>
-          <a href="/rss.xml">RSS</a>
-        </div>
+      <div class="footer-links">
+        <a href="https://github.com/pessimist11" target="_blank" rel="noopener">GitHub</a>
+        <span class="footer-sep">·</span>
+        <a href="/rss.xml">RSS</a>
       </div>
+      <p class="footer-copy">&copy; {new Date().getFullYear()} pessimist11. Powered by Astro &amp; Cloudflare Pages.</p>
     </footer>
 
     <script>
-      // Theme toggle
       const toggle = document.getElementById('themeToggle');
+      const html = document.documentElement;
       const stored = localStorage.getItem('theme');
-      if (stored === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        toggle.textContent = '●';
-      }
+      if (stored) html.setAttribute('data-theme', stored);
+
       toggle?.addEventListener('click', () => {
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        if (isDark) {
-          document.documentElement.removeAttribute('data-theme');
-          localStorage.setItem('theme', 'light');
-          toggle.textContent = '○';
-        } else {
-          document.documentElement.setAttribute('data-theme', 'dark');
-          localStorage.setItem('theme', 'dark');
-          toggle.textContent = '●';
-        }
-      });
-
-      // Scroll reveal
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
-        });
-      }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-      document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        const current = html.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
       });
     </script>
   </body>

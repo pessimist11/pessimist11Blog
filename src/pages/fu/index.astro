@@ -2,31 +2,38 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
+const pageTitle = '馥 · 香水评价';
+
 const posts = await getCollection('fu');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 ---
 
-<BaseLayout title="SCENT">
-  <div class="page-wrap">
-    <div class="page-heading reveal">
-      <div class="page-heading-en">Scent</div>
-      <h1 class="page-heading-zh">香气</h1>
+<BaseLayout title={pageTitle}>
+  <div class="page-header">
+    <div class="page-kicker">Scent</div>
+    <div>
+      <h1>馥</h1>
+      <div class="page-desc">香气馥郁，嗅觉与审美体验</div>
     </div>
-    <ul class="magazine-list reveal">
-      {sorted.map(post => (
-        <li class="magazine-item">
-          <a href={`/fu/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-            <div class="magazine-date">
-              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
-              {post.data.brand && <><br />{post.data.brand}</>}
-            </div>
-            <div class="magazine-content">
-              <div class="magazine-title">{post.data.title}</div>
-              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
-            </div>
-          </a>
-        </li>
-      ))}
-    </ul>
   </div>
+
+  <ul class="post-list">
+    {sorted.map(post => (
+      <li class="post-item">
+        <a href={`/fu/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
+          <div class="post-meta">
+            <time datetime={post.data.pubDate.toISOString()}>
+              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+            {post.data.brand && ` · ${post.data.brand}`}
+            {post.data.rating && ` · ${'★'.repeat(post.data.rating)}${'☆'.repeat(5 - post.data.rating)}`}
+          </div>
+          <div>
+            <div class="post-title">{post.data.title}</div>
+            {post.data.description && <div class="post-desc">{post.data.description}</div>}
+          </div>
+        </a>
+      </li>
+    ))}
+  </ul>
 </BaseLayout>
