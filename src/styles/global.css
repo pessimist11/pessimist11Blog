@@ -311,6 +311,39 @@ main {
   transform: scale(1.03);
 }
 
+/* ========== 帧栏目 照片墙 ========== */
+.zhen-wall {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 48px;
+}
+
+.zhen-wall-item {
+  overflow: hidden;
+  border-radius: 4px;
+  line-height: 0;
+  aspect-ratio: 4 / 3;
+}
+
+.zhen-wall-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s ease;
+}
+
+.zhen-wall-item:hover img {
+  transform: scale(1.04);
+}
+
+@media (max-width: 768px) {
+  .zhen-wall {
+    gap: 8px;
+  }
+}
+
 /* Section listing page header */
 .page-wrap {
   max-width: var(--max-width);
@@ -567,4 +600,32 @@ footer {
     align-items: flex-start;
     gap: 8px;
   }
+}
+
+/* ========== Lightbox ========== */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  cursor: zoom-out;
+}
+
+.lightbox.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
 }

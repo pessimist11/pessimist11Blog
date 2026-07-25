@@ -4,37 +4,44 @@ import { getCollection } from 'astro:content';
 
 const posts = await getCollection('zhen');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+
+// 收集所有帧文章的照片池，构建时随机打乱
+const allPhotos = sorted
+  .flatMap(p => (p.data.coverImages?.length ? p.data.coverImages : p.data.coverImage ? [p.data.coverImage] : []))
+  .sort(() => Math.random() - 0.5);
+const galleryPhotos = allPhotos.slice(0, 4);
 ---
 
-<BaseLayout title="TRAVEL">
+<BaseLayout title="帧">
   <div class="page-wrap reveal">
     <div class="page-heading">
       <h1 class="page-heading-zh">帧</h1>
     </div>
-    <div class="reveal">
-      <div class="photo-grid" style="margin-bottom: 40px;">
-        {sorted.map(post => (
-          <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`} class="photo-grid-item">
-            <img src="/placeholder.jpg" alt={post.data.title} loading="lazy" />
-          </a>
-        ))}
-      </div>
-      <ul class="magazine-list">
-        {sorted.map(post => (
-          <li class="magazine-item">
-            <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-              <div class="magazine-date">
-                {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
-                {post.data.location && <><br />{post.data.location}</>}
-              </div>
-              <div class="magazine-content">
-                <div class="magazine-title">{post.data.title}</div>
-                {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
-              </div>
-            </a>
-          </li>
-        ))}
-      </ul>
+
+    <!-- 照片墙：两行四张，大小错落 -->
+    <div class="zhen-wall">
+      {galleryPhotos.map((photo, i) => (
+        <a href="/zhen/" class="zhen-wall-item">
+          <img src={photo} alt="" loading={i < 2 ? 'eager' : 'lazy'} />
+        </a>
+      ))}
     </div>
+
+    <ul class="magazine-list">
+      {sorted.map(post => (
+        <li class="magazine-item">
+          <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
+            <div class="magazine-date">
+              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
+              {post.data.location && <><br />{post.data.location}</>}
+            </div>
+            <div class="magazine-content">
+              <div class="magazine-title">{post.data.title}</div>
+              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
   </div>
 </BaseLayout>
