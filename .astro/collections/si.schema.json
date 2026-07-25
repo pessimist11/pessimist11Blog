@@ -32,6 +32,15 @@
             "type": "string"
           }
         },
+        "coverImage": {
+          "type": "string"
+        },
+        "coverImages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "location": {
           "type": "string"
         },

@@ -6,6 +6,8 @@ const postCollection = defineCollection({
     pubDate: z.date(),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),
+    coverImage: z.string().optional(),
+    coverImages: z.array(z.string()).optional(),
     // 帧 专属字段
     location: z.string().optional(),
     camera: z.string().optional(),

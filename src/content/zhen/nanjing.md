@@ -1,6 +1,18 @@
 ---
 title: '南京'
 pubDate: 2026-04-15
+coverImage: '/gallery/nanjing/DSCF0876.JPG'
+coverImages:
+  - '/gallery/nanjing/DSCF0876.JPG'
+  - '/gallery/nanjing/DSCF1433.JPG'
+  - '/gallery/nanjing/DSCF0914.JPG'
+  - '/gallery/nanjing/DSCF1590.JPG'
+  - '/gallery/nanjing/DSCF1655.JPG'
+  - '/gallery/nanjing/DSCF1002.JPG'
+  - '/gallery/nanjing/DSCF1864.JPG'
+  - '/gallery/nanjing/DSCF0882.JPG'
+  - '/gallery/nanjing/DSCF1382.JPG'
+  - '/gallery/nanjing/DSCF1448.JPG'
 description: '一座城市的肌理与光影'
 location: '南京'
 camera: 'Fujifilm X-T5'
