@@ -10,15 +10,17 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
 
 <BaseLayout title={pageTitle}>
   <div class="page-header">
-    <h1>📷 帧</h1>
-    <div class="page-desc">定格旅途瞬间，收藏时间切片</div>
+    <div class="page-kicker">Frames</div>
+    <div>
+      <h1>帧</h1>
+      <div class="page-desc">定格旅途瞬间，收藏时间切片</div>
+    </div>
   </div>
 
   <ul class="post-list">
     {sorted.map(post => (
       <li class="post-item">
         <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-          <div class="post-title">{post.data.title}</div>
           <div class="post-meta">
             <time datetime={post.data.pubDate.toISOString()}>
               {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -26,7 +28,10 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
             {post.data.location && ` · ${post.data.location}`}
             {post.data.camera && ` · 📸 ${post.data.camera}`}
           </div>
-          {post.data.description && <div class="post-desc">{post.data.description}</div>}
+          <div>
+            <div class="post-title">{post.data.title}</div>
+            {post.data.description && <div class="post-desc">{post.data.description}</div>}
+          </div>
         </a>
       </li>
     ))}

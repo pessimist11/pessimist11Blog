@@ -3,10 +3,10 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
 const sections = [
-  { slug: 'zhi', emoji: '📘', name: '知', subtitle: '知识·技术', desc: '探索技术世界，记录学习历程', color: '#3b82f6' },
-  { slug: 'si', emoji: '📝', name: '思', subtitle: '思考·感悟', desc: '内心随笔，生活感悟', color: '#8b5cf6' },
-  { slug: 'zhen', emoji: '📷', name: '帧', subtitle: '定格·瞬间', desc: '旅途中收藏的时间切片', color: '#f59e0b' },
-  { slug: 'fu', emoji: '🌸', name: '馥', subtitle: '香气·审美', desc: '嗅觉记录与审美体验', color: '#ec4899' },
+  { slug: 'zhi', name: '知', subtitle: '知识 / 技术', desc: '探索技术世界，记录学习历程' },
+  { slug: 'si', name: '思', subtitle: '思考 / 感悟', desc: '内心随笔，生活感悟' },
+  { slug: 'zhen', name: '帧', subtitle: '定格 / 瞬间', desc: '旅途中收藏的时间切片' },
+  { slug: 'fu', name: '馥', subtitle: '香气 / 审美', desc: '嗅觉记录与审美体验' },
 ];
 
 // Latest posts for recent section
@@ -31,68 +31,65 @@ const photoPlaceholders = [
 ---
 
 <BaseLayout title="首页">
-  <!-- Hero Banner -->
-  <div class="hero">
-    <div class="hero-bg"></div>
+  <section class="hero">
     <div class="hero-content">
-      <h1>pessimist11</h1>
-      <p class="hero-desc">知 · 思 · 帧 · 馥</p>
-      <p class="hero-sub">关于技术、生活、旅行与气味的一些记录。</p>
-      <div class="hero-quote">「 记录即抵抗遗忘 」</div>
+      <div>
+        <div class="hero-kicker">Personal Journal</div>
+        <h1>pessimist11</h1>
+        <p class="hero-desc">知 · 思 · 帧 · 馥</p>
+        <p class="hero-sub">关于技术、生活、旅行与气味的一些记录。</p>
+      </div>
+      <aside class="hero-aside" aria-label="站点简介">
+        <p class="hero-quote">记录即抵抗遗忘。</p>
+        <p class="hero-meta">A quiet index of notes, images, thoughts and scents. Updated irregularly.</p>
+      </aside>
     </div>
-  </div>
+  </section>
 
-  <!-- Section Grid -->
-  <div class="section-grid">
-    {sections.map(s => (
-      <a href={`/${s.slug}/`} class="section-card" style={`--card-color: ${s.color}`}>
-        <div class="card-accent"></div>
+  <section class="section-grid" aria-label="栏目">
+    {sections.map((s, index) => (
+      <a href={`/${s.slug}/`} class="section-card">
+        <div class="card-index">{String(index + 1).padStart(2, '0')}</div>
         <div class="card-content">
-          <div class="emoji">{s.emoji}</div>
           <h2>{s.name}</h2>
           <div class="subtitle">{s.subtitle}</div>
           <div class="desc">{s.desc}</div>
         </div>
+        <div class="card-arrow" aria-hidden="true">→</div>
       </a>
     ))}
-  </div>
+  </section>
 
-  <!-- Photo Preview Strip (帧) -->
-  <div class="photo-strip">
+  <section class="photo-strip">
     <div class="photo-strip-header">
-      <h2>📷 近期摄影</h2>
-      <a href="/zhen/" class="photo-strip-link">查看全部 →</a>
+      <h2>Recent Frames</h2>
+      <a href="/zhen/" class="photo-strip-link">查看全部</a>
     </div>
     <div class="photo-grid">
       {photoPlaceholders.map((url, i) => (
         <a href="/zhen/" class="photo-item">
           <img src={url} alt={`摄影作品 ${i + 1}`} loading="lazy" />
-          <div class="photo-overlay">
-            <span>📷</span>
-          </div>
+          <div class="photo-overlay">Frame {String(i + 1).padStart(2, '0')}</div>
         </a>
       ))}
     </div>
-  </div>
+  </section>
 
-  <!-- Recent Posts -->
-  <h2 class="section-heading">📌 近期更新</h2>
+  <h2 class="section-heading"><span>Recent Notes</span></h2>
   <ul class="post-list">
     {allPosts.map(post => (
       <li class="post-item">
         <a href={`/${post.category.slug}/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-          <div class="post-title">
-            <span class="post-category" style={`background: ${post.category.color}20; color: ${post.category.color}`}>
-              {post.category.emoji} {post.category.name}
-            </span>
-            {post.data.title}
-          </div>
           <div class="post-meta">
+            <span class="post-category">{post.category.name}</span>
             <time datetime={post.data.pubDate.toISOString()}>
               {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
             </time>
           </div>
-          {post.data.description && <div class="post-desc">{post.data.description}</div>}
+          <div>
+            <div class="post-title">{post.data.title}</div>
+            {post.data.description && <div class="post-desc">{post.data.description}</div>}
+          </div>
         </a>
       </li>
     ))}

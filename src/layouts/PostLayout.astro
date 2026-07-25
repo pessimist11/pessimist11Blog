@@ -23,11 +23,11 @@ const { title, pubDate, tags, description, categoryName, categoryEmoji } = Astro
         </time>
       </div>
       <h1 class="post-title">{title}</h1>
-      {description && <p style="color: var(--text-muted); font-size: 15px; margin-top: 8px;">{description}</p>}
+      {description && <p class="post-description">{description}</p>}
       {tags && tags.length > 0 && (
-        <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
+        <div class="post-tags">
           {tags.map(tag => (
-            <span style="font-size: 12px; background: var(--bg-alt); padding: 2px 8px; border-radius: 4px; color: var(--text-muted);">#{tag}</span>
+            <span class="post-tag">#{tag}</span>
           ))}
         </div>
       )}
