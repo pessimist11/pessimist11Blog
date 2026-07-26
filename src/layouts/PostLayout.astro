@@ -7,13 +7,18 @@ export interface Props {
   tags?: string[];
   description?: string;
   categoryName: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
-const { title, pubDate, tags, description, categoryName } = Astro.props;
+const { title, pubDate, tags, description, categoryName, backHref, backLabel } = Astro.props;
 ---
 
 <BaseLayout title={title}>
   <article class="article-wrap">
+    {backHref && (
+      <a href={backHref} class="back-link">← 返回<span> {backLabel || '上一级'}</span></a>
+    )}
     <header class="article-header">
       <div class="article-category">{categoryName}</div>
       <h1 class="article-title">{title}</h1>

@@ -1,6 +1,6 @@
 ---
 title: '南京'
-pubDate: 2026-04-15
+pubDate: 2023-03-18
 coverImage: '/gallery/nanjing/DSCF0876.JPG'
 coverImages:
   - '/gallery/nanjing/DSCF0876.JPG'
@@ -16,7 +16,7 @@ coverImages:
 description: '一座城市的肌理与光影'
 location: '南京'
 camera: 'Fujifilm X-T5'
-tags: ['南京', '旅行摄影']
+tags: ['金陵之行']
 ---
 
 一个很普通的周末，买了张票就去了南京。

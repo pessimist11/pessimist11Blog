@@ -378,6 +378,30 @@ main {
   padding: 80px 28px;
 }
 
+/* Back link */
+.back-link {
+  position: sticky;
+  top: var(--nav-height);
+  z-index: 10;
+  display: block;
+  font-size: 19px;
+  color: var(--text-muted);
+  padding: 12px 0;
+  margin-bottom: 20px;
+  letter-spacing: 0.02em;
+  transition: color 0.2s ease;
+  background: var(--bg);
+  margin-left: -3em;
+}
+
+.back-link span {
+  font-weight: 700;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
 .article-header {
   margin-bottom: 48px;
   padding-bottom: 28px;
