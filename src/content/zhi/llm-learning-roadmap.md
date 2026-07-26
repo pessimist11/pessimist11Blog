@@ -1,6 +1,6 @@
 ---
 title: '研0暑假·LLM 应用开发突围路线'
-pubDate: 2026-07-13
+pubDate: 2026-07-15
 description: '7周走通 LLM 应用开发完整链路，从 Python 工程到 Agent/MCP 部署上线。'
 tags: ['LLM', 'RAG', 'Agent', 'MCP', '学习计划']
 ---

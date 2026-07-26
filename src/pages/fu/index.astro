@@ -12,6 +12,7 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
     <div class="page-heading">
       <h1 class="page-heading-zh">馥</h1>
     </div>
+    <p class="section-intro">香水的价值在于可以将一座新的城市、一段特殊的记忆、一个重要的人与气味分子深度绑定，锁在那罐瓶中。</p>
     <ul class="magazine-list reveal">
       {sorted.map(post => (
         <li class="magazine-item">

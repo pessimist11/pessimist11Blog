@@ -12,6 +12,7 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
     <div class="page-heading">
       <h1 class="page-heading-zh">知</h1>
     </div>
+    <p class="section-intro">纸上得来终觉浅，绝知此事要躬行。</p>
     <ul class="magazine-list reveal">
       {sorted.map(post => (
         <li class="magazine-item">
