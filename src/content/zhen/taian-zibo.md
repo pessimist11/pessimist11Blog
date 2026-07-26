@@ -17,7 +17,7 @@ coverImages:
 description: '泰山之巅，齐都烟火'
 location: '泰安·淄博'
 camera: 'Fujifilm X-T5'
-tags: ['泰山之行']
+tags: ['11帧']
 ---
 
 五月初的齐鲁大地，春末夏初，阳光正好。

@@ -16,7 +16,7 @@ coverImages:
 description: '一座城市的肌理与光影'
 location: '南京'
 camera: 'Fujifilm X-T5'
-tags: ['金陵之行']
+tags: ['25帧']
 ---
 
 一个很普通的周末，买了张票就去了南京。

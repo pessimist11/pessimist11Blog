@@ -15,7 +15,7 @@ coverImages:
 description: '红瓦绿树，碧海蓝天'
 location: '青岛'
 camera: 'Fujifilm X-T5'
-tags: ['海滨之旅']
+tags: ['9帧']
 ---
 
 六月中旬的青岛，燥热与清爽并存，海风里带着咸湿的味道。
