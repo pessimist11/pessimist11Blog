@@ -1,7 +1,7 @@
 ---
 title: '蒂普提克 奥费恩'
 pubDate: 2025-01-12
-description: '巧妙调和热情的香豆、深沉的雪松与灵动的杜松子。'
+description: '我与山城结缘'
 brand: 'Diptyque'
 notes: ['杜松子','雪松','零陵香豆','茉莉']
 rating: 4.3

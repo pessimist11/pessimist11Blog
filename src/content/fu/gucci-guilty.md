@@ -1,7 +1,7 @@
 ---
 title: '古驰 罪爱男士'
 pubDate: 2024-07-12
-description: '前调刺激，闻起来像伪装好人的坏人味道。'
+description: '一段关于失去的记忆'
 brand: 'Gucci'
 notes: ['橙花','盐','薰衣草','雪松']
 rating: 4.2
