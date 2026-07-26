@@ -1,7 +1,7 @@
 ---
 title: 'hello,world!'
 pubDate: 2026-07-25
-description: '我的第一篇技术分享'
+description: '学 的方法和意义'
 tags: ['tech']
 ---
 
