@@ -413,7 +413,6 @@ main {
   letter-spacing: 0.02em;
   transition: color 0.2s ease;
   background: var(--bg);
-  margin-left: -3em;
 }
 
 .back-link span {
