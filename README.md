@@ -1,4 +1,4 @@
-# pessimist11.net
+# pessimist11
 
 > 个人博客
 
