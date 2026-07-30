@@ -1,6 +1,6 @@
 # pessimist11.net
 
-> 记录技术、思想与旅途中的瞬间
+> 个人博客
 
 个人博客，基于 [Astro](https://astro.build) 5 构建，部署于 Cloudflare Pages。
 
