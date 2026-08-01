@@ -4,9 +4,19 @@ import '@/styles/global.css';
 export interface Props {
   title: string;
   pageTitle?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article';
 }
 
-const { title } = Astro.props;
+const { title, description, image, type = 'website' } = Astro.props;
+
+const defaultDescription = '记录无意义的生命中可能有意义的瞬间';
+const ogDescription = description || defaultDescription;
+const pageTitle = `${title} — pessimist11`;
+const siteUrl = Astro.site ?? new URL('https://pessimist11.pages.dev');
+const ogUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
 ---
 
 <!doctype html>
@@ -14,13 +24,24 @@ const { title } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="记录无意义的生命中可能有意义的瞬间" />
-    <title>{title} — pessimist11</title>
+    <meta name="description" content={ogDescription} />
+    <title>{pageTitle}</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="alternate" type="application/rss+xml" title="pessimist11" href="/rss.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={ogDescription} />
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={ogUrl} />
+    <meta property="og:site_name" content="pessimist11" />
+    <meta property="og:locale" content="zh_CN" />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={ogDescription} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
   </head>
   <body>
     <div class="watermark" aria-hidden="true">pessimist11</div>

@@ -12,6 +12,7 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await post.render();
+const cover = post.data.coverImage || post.data.coverImages?.[0];
 ---
 
 <PostLayout
@@ -19,6 +20,7 @@ const { Content } = await post.render();
   pubDate={post.data.pubDate}
   tags={post.data.tags}
   description={post.data.description}
+  image={cover}
   categoryName="TRAVEL"
   backHref="/zhen/"
   backLabel="帧"
