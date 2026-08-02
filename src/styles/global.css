@@ -401,6 +401,19 @@ main {
   max-width: var(--content-width);
 }
 
+/* Year-grouped listing */
+.year-group {
+  margin-bottom: 56px;
+}
+
+.year-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text-faint);
+  margin-bottom: 18px;
+}
+
 /* Article page */
 .article-wrap {
   max-width: var(--content-width);

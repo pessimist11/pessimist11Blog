@@ -4,29 +4,44 @@ import { getCollection } from 'astro:content';
 
 const posts = await getCollection('si');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+
+// 按年编目
+const byYear = new Map<number, typeof sorted>();
+for (const post of sorted) {
+  const year = post.data.pubDate.getFullYear();
+  const list = byYear.get(year) ?? [];
+  list.push(post);
+  byYear.set(year, list);
+}
 ---
 
-<BaseLayout title="JOURNAL">
+<BaseLayout title="THINKING">
   <div class="page-wrap reveal">
     <a href="/" class="back-link">← 返回<span> 首页</span></a>
     <div class="page-heading">
       <h1 class="page-heading-zh">思</h1>
     </div>
     <p class="section-intro">观山则情满于山，观海则意溢于海。</p>
-    <ul class="magazine-list reveal">
-      {sorted.map(post => (
-        <li class="magazine-item">
-          <a href={`/si/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
-            <div class="magazine-date">
-              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
-            </div>
-            <div class="magazine-content">
-              <div class="magazine-title">{post.data.title}</div>
-              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
-            </div>
-          </a>
-        </li>
-      ))}
-    </ul>
+
+    {Array.from(byYear.entries()).map(([year, yearPosts]) => (
+      <section class="year-group reveal">
+        <h2 class="year-label">{year}</h2>
+        <ul class="magazine-list">
+          {yearPosts.map(post => (
+            <li class="magazine-item">
+              <a href={`/si/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
+                <div class="magazine-date">
+                  {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                </div>
+                <div class="magazine-content">
+                  <div class="magazine-title">{post.data.title}</div>
+                  {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
   </div>
 </BaseLayout>

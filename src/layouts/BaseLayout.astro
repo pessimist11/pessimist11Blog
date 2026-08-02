@@ -1,5 +1,6 @@
 ---
 import '@/styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 
 export interface Props {
   title: string;
@@ -24,6 +25,56 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script is:inline>
+      // 进页面前定主题，避免闪色：localStorage 优先，其次跟随系统
+      (() => {
+        const KEY = 'theme';
+
+        function storedTheme() {
+          try {
+            const t = localStorage.getItem(KEY);
+            return t === 'light' || t === 'dark' ? t : null;
+          } catch {
+            return null;
+          }
+        }
+
+        function systemTheme() {
+          return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function applyTheme() {
+          const t = storedTheme() || systemTheme();
+          document.documentElement.dataset.theme = t;
+          const toggle = document.getElementById('themeToggle');
+          if (toggle) toggle.textContent = t === 'dark' ? '●' : '○';
+        }
+
+        applyTheme();
+
+        // 切换按钮：事件委托，View Transitions 换页后依然可用
+        document.addEventListener('click', (e) => {
+          const toggle = e.target.closest('#themeToggle');
+          if (!toggle) return;
+          const isDark = document.documentElement.dataset.theme === 'dark';
+          const next = isDark ? 'light' : 'dark';
+          document.documentElement.dataset.theme = next;
+          toggle.textContent = next === 'dark' ? '●' : '○';
+          try {
+            localStorage.setItem(KEY, next);
+          } catch {}
+        });
+
+        // View Transitions 换页后 html 会被替换，需重新应用主题
+        document.addEventListener('astro:page-load', applyTheme);
+
+        // 未手动选择过主题时，跟随系统实时切换
+        matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          if (!storedTheme()) applyTheme();
+        });
+      })();
+    </script>
+    <ClientRouter />
     <meta name="description" content={ogDescription} />
     <title>{pageTitle}</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
@@ -85,29 +136,7 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
     </div>
 
     <script>
-      // Theme toggle
-      const toggle = document.getElementById('themeToggle');
-      const html = document.documentElement;
-      const stored = localStorage.getItem('theme');
-      if (stored === 'dark') {
-        html.setAttribute('data-theme', 'dark');
-        toggle.textContent = '●';
-      }
-
-      toggle?.addEventListener('click', () => {
-        const isDark = html.getAttribute('data-theme') === 'dark';
-        if (isDark) {
-          html.removeAttribute('data-theme');
-          localStorage.setItem('theme', 'light');
-          toggle.textContent = '○';
-        } else {
-          html.setAttribute('data-theme', 'dark');
-          localStorage.setItem('theme', 'dark');
-          toggle.textContent = '●';
-        }
-      });
-
-      // Scroll reveal
+      // Scroll reveal —— astro:page-load 保证 View Transitions 换页后重新观察
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -116,61 +145,59 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
         });
       }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
-      document.addEventListener('DOMContentLoaded', () => {
+      function initReveal() {
         document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-      });
+      }
+      document.addEventListener('astro:page-load', initReveal);
+      initReveal();
 
-      // Lightbox
-      const lightbox = document.getElementById('lightbox');
-      const lightboxImg = document.getElementById('lightboxImg');
-      const lightboxPrev = document.getElementById('lightboxPrev');
-      const lightboxNext = document.getElementById('lightboxNext');
+      // Lightbox —— 全部事件委托 + 实时取元素，View Transitions 换页后依然可用
       let lightboxImages = [];
       let currentIndex = -1;
 
+      function lightboxEl() { return document.getElementById('lightbox'); }
+      function lightboxImgEl() { return document.getElementById('lightboxImg'); }
+      function lightboxPrevEl() { return document.getElementById('lightboxPrev'); }
+      function lightboxNextEl() { return document.getElementById('lightboxNext'); }
+
       function updateNavButtons() {
-        lightboxPrev.style.display = currentIndex > 0 ? '' : 'none';
-        lightboxNext.style.display = currentIndex < lightboxImages.length - 1 ? '' : 'none';
+        const prev = lightboxPrevEl();
+        const next = lightboxNextEl();
+        if (prev) prev.style.display = currentIndex > 0 ? '' : 'none';
+        if (next) next.style.display = currentIndex < lightboxImages.length - 1 ? '' : 'none';
       }
 
       function navigateLightbox(dir) {
         const next = currentIndex + dir;
         if (next >= 0 && next < lightboxImages.length) {
           currentIndex = next;
-          lightboxImg.src = lightboxImages[currentIndex];
+          const img = lightboxImgEl();
+          if (img) img.src = lightboxImages[currentIndex];
           updateNavButtons();
         }
       }
 
       function openLightbox(src, imagesArray) {
+        const box = lightboxEl();
+        if (!box) return;
         lightboxImages = imagesArray || [src];
         currentIndex = lightboxImages.indexOf(src);
         if (currentIndex === -1) currentIndex = 0;
-        lightboxImg.src = lightboxImages[currentIndex];
-        lightbox.classList.add('open');
+        const img = lightboxImgEl();
+        if (img) img.src = lightboxImages[currentIndex];
+        box.classList.add('open');
         updateNavButtons();
       }
 
       function closeLightbox() {
-        lightbox.classList.remove('open');
-        lightboxImg.src = '';
+        const box = lightboxEl();
+        if (!box) return;
+        box.classList.remove('open');
+        const img = lightboxImgEl();
+        if (img) img.src = '';
         lightboxImages = [];
         currentIndex = -1;
       }
-
-      lightboxPrev?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        navigateLightbox(-1);
-      });
-
-      lightboxNext?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        navigateLightbox(1);
-      });
-
-      lightbox?.addEventListener('click', (e) => {
-        if (e.target === lightbox) closeLightbox();
-      });
 
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeLightbox();
@@ -178,14 +205,27 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
         if (e.key === 'ArrowRight') navigateLightbox(1);
       });
 
-      // Gather images from a container
       function gatherImages(container) {
         if (!container) return [];
         return Array.from(container.querySelectorAll('img')).map(img => img.src);
       }
 
-      // Click photos in 帧 sections to open lightbox
       document.addEventListener('click', (e) => {
+        if (e.target.closest('#lightboxPrev')) {
+          e.stopPropagation();
+          navigateLightbox(-1);
+          return;
+        }
+        if (e.target.closest('#lightboxNext')) {
+          e.stopPropagation();
+          navigateLightbox(1);
+          return;
+        }
+        if (e.target.id === 'lightbox') {
+          closeLightbox();
+          return;
+        }
+        // 点击 帧 照片墙 / 图片网格 打开 lightbox
         const link = e.target.closest('.zhen-wall-item, .photo-grid-item');
         const hero = e.target.closest('.feature-photo-inner');
         if (link || hero) {
@@ -197,7 +237,7 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
             openLightbox(img.src, container ? gatherImages(container) : null);
           }
         }
-        // Click images inside article content (帧 detail pages)
+        // 点击文章正文里的图片
         if (e.target.tagName === 'IMG' && e.target.closest('.article-wrap')) {
           e.preventDefault();
           const article = e.target.closest('.article-wrap');
