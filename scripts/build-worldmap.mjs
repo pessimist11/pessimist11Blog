@@ -17,12 +17,21 @@ const project = ([lng, lat]) => [
   ((90 - lat) / 180) * H,
 ];
 
-function ringPath(ring) {
-  return ring
-    .map((p, i) => {
-      const [x, y] = project(p);
-      return `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
+function ringToPaths(ring) {
+  const pts = ring.map(project);
+  const segs = [];
+  let cur = [];
+  for (const p of pts) {
+    // 跨过 180° 日期变更线的点会产生贯穿全图的撕裂线，在这里断开
+    if (cur.length && Math.abs(p[0] - cur[cur.length - 1][0]) > W / 2) {
+      segs.push(cur);
+      cur = [];
+    }
+    cur.push(p);
+  }
+  if (cur.length) segs.push(cur);
+  return segs
+    .map(seg => seg.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('') + 'Z')
     .join('');
 }
 
@@ -33,12 +42,23 @@ for (const f of geo.features) {
   const polygons = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
   for (const polygon of polygons) {
     for (const ring of polygon) {
-      d += ringPath(ring) + 'Z';
+      d += ringToPaths(ring);
     }
   }
 }
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill-rule="evenodd" aria-hidden="true">\n<path class="worldmap-land" d="${d}"/>\n</svg>\n`;
+// 经纬网格（10° 间隔）：经线 + 纬线
+let grid = '';
+for (let lng = -180; lng <= 180; lng += 10) {
+  const x = ((lng + 180) / 360) * W;
+  grid += `M${x.toFixed(1)} 0V${H}`;
+}
+for (let lat = -80; lat <= 80; lat += 10) {
+  const y = ((90 - lat) / 180) * H;
+  grid += `M0 ${y.toFixed(1)}H${W}`;
+}
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill-rule="evenodd" aria-hidden="true">\n<path class="worldmap-grid" d="${grid}"/>\n<path class="worldmap-land" d="${d}"/>\n</svg>\n`;
 
 await mkdir(path.dirname(OUT), { recursive: true });
 await writeFile(OUT, svg, 'utf8');

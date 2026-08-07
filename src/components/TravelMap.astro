@@ -30,15 +30,8 @@ const pins = places
     sy: ((90 - p.lat) / 180) * H,
   }));
 
-// 初始 viewBox：框住所有点并留白（2:1 保持）
-const pad = 0.15;
-const xs = pins.map(p => p.sx);
-const ys = pins.map(p => p.sy);
-const minX = Math.max(0, Math.min(...xs) - W * pad);
-const maxX = Math.min(W, Math.max(...xs) + W * pad);
-const minY = Math.max(0, Math.min(...ys) - H * pad);
-const maxY = Math.min(H, Math.max(...ys) + H * pad);
-const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1)} ${(maxY - minY).toFixed(1)}`;
+// 初始视野：固定为大致“中国”范围（含周边，2:1 不变形），不做自动适配
+const viewBox = '1360 160 480 240';
 ---
 
 <figure class="travel-map reveal" data-viewbox={viewBox} aria-label="去过的地方地图">
@@ -90,9 +83,10 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
       return Math.min(hi, Math.max(lo, v));
     }
 
-    function layout() {
+    let labelsTimer = null;
+
+    function positionPins() {
       if (svg) svg.setAttribute('viewBox', vb.join(' '));
-      const visible = [];
       for (const pin of pins) {
         const px = ((pin.sx - vb[0]) / vb[2]) * 100;
         const py = ((pin.sy - vb[1]) / vb[3]) * 100;
@@ -104,8 +98,11 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
         }
         pin.el.style.left = px.toFixed(2) + '%';
         pin.el.style.top = py.toFixed(2) + '%';
-        visible.push(pin);
       }
+    }
+
+    function updateLabels() {
+      const visible = pins.filter(p => p.el.style.display !== 'none');
       // 标签碰撞检测
       const placed = [];
       for (const pin of visible) {
@@ -116,6 +113,18 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
         pin.label.style.visibility = hit ? 'hidden' : 'visible';
         if (!hit) placed.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
       }
+    }
+
+    function layout() {
+      positionPins();
+      updateLabels();
+    }
+
+    // 拖拽时同步更新位置（图钉与地图同一帧渲染，标记点不会相对地图漂移）；
+    // 标签碰撞检测延后执行，避免拖拽卡顿
+    function scheduleLabels() {
+      clearTimeout(labelsTimer);
+      labelsTimer = setTimeout(updateLabels, 120);
     }
 
     function clampViewBox() {
@@ -136,7 +145,8 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
       vb[0] = fx - (px / rect.width) * vb[2];
       vb[1] = fy - (py / rect.height) * vb[3];
       clampViewBox();
-      layout();
+      positionPins();
+      scheduleLabels();
     }
 
     // Ctrl/Cmd + 滚轮缩放，否则提示
@@ -200,14 +210,17 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
         vb[0] -= (dx / rect.width) * vb[2];
         vb[1] -= (dy / rect.height) * vb[3];
         clampViewBox();
-        layout();
+        positionPins();
       }
     });
 
     function endPointer(e) {
       pointers.delete(e.pointerId);
       if (pointers.size < 2) lastDist = 0;
-      if (pointers.size === 0) canvas.classList.remove('is-grab');
+      if (pointers.size === 0) {
+        canvas.classList.remove('is-grab');
+        updateLabels();
+      }
     }
     canvas.addEventListener('pointerup', endPointer);
     canvas.addEventListener('pointercancel', endPointer);
@@ -232,14 +245,16 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
   .travel-map {
     position: relative;
     z-index: 0;
+    width: 100%;
     height: 460px;
     margin-bottom: 48px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 20px;
     overflow: hidden;
-    background: var(--bg-alt);
+    background: var(--bg);
     cursor: grab;
     touch-action: pan-y;
+    user-select: none;
   }
   .tm-view {
     position: relative;
@@ -268,9 +283,14 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
   }
   .tm-svg :global(.worldmap-land) {
     fill: var(--border-strong);
-    stroke: var(--bg);
-    stroke-width: 0.5;
-    opacity: 0.9;
+    stroke: none;
+    opacity: 0.65;
+  }
+  .tm-svg :global(.worldmap-grid) {
+    fill: none;
+    stroke: var(--border-strong);
+    stroke-width: 0.6;
+    opacity: 0.45;
   }
   .tm-pin {
     position: absolute;
@@ -348,6 +368,7 @@ const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1
   }
   @media (max-width: 768px) {
     .travel-map {
+      width: 100%;
       height: 320px;
     }
   }
