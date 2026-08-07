@@ -205,9 +205,20 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
         if (e.key === 'ArrowRight') navigateLightbox(1);
       });
 
+      // Lightbox 使用 srcset 中最大的一档，保证放大查看时的清晰度
+      function bestSrc(img) {
+        if (img && img.srcset) {
+          const entries = img.srcset.split(',');
+          const last = entries[entries.length - 1].trim();
+          const url = last.split(/\s+/)[0];
+          if (url) return url;
+        }
+        return img ? img.src : '';
+      }
+
       function gatherImages(container) {
         if (!container) return [];
-        return Array.from(container.querySelectorAll('img')).map(img => img.src);
+        return Array.from(container.querySelectorAll('img')).map(img => bestSrc(img));
       }
 
       document.addEventListener('click', (e) => {
@@ -234,14 +245,14 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
           if (img && img.src) {
             e.preventDefault();
             const container = wrap.closest('.zhen-wall') || wrap.closest('.photo-grid');
-            openLightbox(img.src, container ? gatherImages(container) : null);
+            openLightbox(bestSrc(img), container ? gatherImages(container) : null);
           }
         }
         // 点击文章正文里的图片
         if (e.target.tagName === 'IMG' && e.target.closest('.article-wrap')) {
           e.preventDefault();
           const article = e.target.closest('.article-wrap');
-          openLightbox(e.target.src, gatherImages(article));
+          openLightbox(bestSrc(e.target), gatherImages(article));
         }
       });
     </script>

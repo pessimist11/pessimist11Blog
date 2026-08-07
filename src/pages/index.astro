@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
+import { galleryImage } from '@/lib/gallery';
+import type { ImageMetadata } from 'astro';
 
 const zhi = await getCollection('zhi');
 const si = await getCollection('si');
@@ -16,8 +19,10 @@ const zhenPosts = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.
 // 收集帧文章的所有封面照片，构建时随机打乱
 const allPhotos = zhen
   .flatMap(p => (p.data.coverImages?.length ? p.data.coverImages : p.data.coverImage ? [p.data.coverImage] : []))
+  .map(galleryImage)
+  .filter((photo): photo is ImageMetadata => Boolean(photo))
   .sort(() => Math.random() - 0.5);
-const featuredPhoto = allPhotos[0] || '/gallery/nanjing/DSCF0876.JPG';
+const featuredPhoto = allPhotos[0] ?? galleryImage('/gallery/nanjing/DSCF0876.jpg')!;
 
 function slug(id: string) {
   return id.replace(/\.(md|mdx)$/, '');
@@ -32,7 +37,16 @@ function slug(id: string) {
 
   <div class="feature-photo reveal">
     <div class="feature-photo-inner">
-      <img src={featuredPhoto} alt="" loading="lazy" />
+      <Image
+        src={featuredPhoto}
+        alt=""
+        formats={['avif', 'webp']}
+        widths={[480, 960, 1600]}
+        sizes="100vw"
+        width={1600}
+        fetchpriority="high"
+        loading="eager"
+      />
     </div>
   </div>
 

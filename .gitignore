@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .astro/
+public/gallery/
 .DS_Store
 *.local
 .claude/

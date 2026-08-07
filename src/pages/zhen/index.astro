@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
+import { galleryImage } from '@/lib/gallery';
+import type { ImageMetadata } from 'astro';
 
 const posts = await getCollection('zhen');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
@@ -8,6 +11,8 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
 // 收集所有帧文章的照片池，构建时随机打乱
 const allPhotos = sorted
   .flatMap(p => (p.data.coverImages?.length ? p.data.coverImages : p.data.coverImage ? [p.data.coverImage] : []))
+  .map(galleryImage)
+  .filter((photo): photo is ImageMetadata => Boolean(photo))
   .sort(() => Math.random() - 0.5);
 const galleryPhotos = allPhotos.slice(0, 6);
 ---
@@ -24,7 +29,15 @@ const galleryPhotos = allPhotos.slice(0, 6);
     <div class="zhen-wall">
       {galleryPhotos.map((photo, i) => (
         <a href="/zhen/" class="zhen-wall-item">
-          <img src={photo} alt="" loading={i < 2 ? 'eager' : 'lazy'} />
+          <Image
+            src={photo}
+            alt=""
+            formats={['avif', 'webp']}
+            widths={[480, 960, 1600]}
+            sizes="(max-width: 768px) 92vw, 30vw"
+            width={1600}
+            loading={i < 2 ? 'eager' : 'lazy'}
+          />
         </a>
       ))}
     </div>
