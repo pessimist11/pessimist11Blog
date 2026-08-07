@@ -10,6 +10,8 @@ coverImages:
 description: '山城的雾与阶梯'
 location: '重庆'
 camera: 'Fujifilm X-T5'
+lat: 29.5630
+lng: 106.5516
 tags: ['19帧']
 ---
 

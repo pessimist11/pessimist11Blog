@@ -11,6 +11,8 @@ const postCollection = defineCollection({
     // 帧 专属字段
     location: z.string().optional(),
     camera: z.string().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
     // 馥 专属字段
     brand: z.string().optional(),
     notes: z.array(z.string()).optional(),

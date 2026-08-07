@@ -16,6 +16,8 @@ coverImages:
 description: '一座城市的肌理与光影'
 location: '南京'
 camera: 'Fujifilm X-T5'
+lat: 32.0603
+lng: 118.7969
 tags: ['25帧']
 ---
 

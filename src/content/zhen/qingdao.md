@@ -15,6 +15,8 @@ coverImages:
 description: '红瓦绿树，碧海蓝天'
 location: '青岛'
 camera: 'Fujifilm X-T5'
+lat: 36.0671
+lng: 120.3826
 tags: ['9帧']
 ---
 

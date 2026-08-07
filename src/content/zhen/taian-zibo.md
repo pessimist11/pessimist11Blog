@@ -17,6 +17,8 @@ coverImages:
 description: '泰山之巅，齐都烟火'
 location: '泰安·淄博'
 camera: 'Fujifilm X-T5'
+lat: 36.50
+lng: 117.58
 tags: ['11帧']
 ---
 
