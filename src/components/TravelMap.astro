@@ -1,0 +1,354 @@
+---
+interface Place {
+  name: string;
+  location?: string;
+  year: number;
+  frames: number;
+  lat: number;
+  lng: number;
+  href: string;
+  latest?: boolean;
+}
+
+interface Props {
+  places: Place[];
+}
+
+const { places } = Astro.props;
+import worldmapSvg from '@/assets/worldmap.svg?raw';
+
+const W = 2000;
+const H = 1000;
+
+// 等距圆柱投影：经纬度 → SVG 坐标
+const pins = places
+  .filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
+  .sort((a, b) => b.frames - a.frames)
+  .map(p => ({
+    ...p,
+    sx: ((p.lng + 180) / 360) * W,
+    sy: ((90 - p.lat) / 180) * H,
+  }));
+
+// 初始 viewBox：框住所有点并留白（2:1 保持）
+const pad = 0.15;
+const xs = pins.map(p => p.sx);
+const ys = pins.map(p => p.sy);
+const minX = Math.max(0, Math.min(...xs) - W * pad);
+const maxX = Math.min(W, Math.max(...xs) + W * pad);
+const minY = Math.max(0, Math.min(...ys) - H * pad);
+const maxY = Math.min(H, Math.max(...ys) + H * pad);
+const viewBox = `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1)} ${(maxY - minY).toFixed(1)}`;
+---
+
+<figure class="travel-map reveal" data-viewbox={viewBox} aria-label="去过的地方地图">
+  <div class="tm-view tm-view--flat">
+    <div class="tm-canvas" aria-hidden="false">
+      {pins.map(pin => (
+        <a
+          class={`tm-pin${pin.latest ? ' tm-pin--latest' : ''}`}
+          href={pin.href}
+          data-svgx={pin.sx}
+          data-svgy={pin.sy}
+          data-frames={pin.frames}
+          aria-label={`${pin.name} ${pin.year}`}
+        >
+          <span class="tm-pin-dot" aria-hidden="true"></span>
+          <span class="tm-label">{pin.name}</span>
+        </a>
+      ))}
+    </div>
+    <div class="tm-svg" set:html={worldmapSvg}></div>
+  </div>
+  <div class="tm-hint" role="status">按住 Ctrl / ⌘ 滚动缩放 · 双击放大 · 拖拽平移</div>
+</figure>
+
+<script>
+  const figure = document.querySelector('.travel-map');
+  if (figure && !figure.dataset.bound) {
+    figure.dataset.bound = '1';
+    const canvas = figure.querySelector('.tm-canvas');
+    const svg = figure.querySelector('.tm-svg svg');
+    const pins = [...figure.querySelectorAll('.tm-pin')]
+      .map(el => ({
+        el,
+        label: el.querySelector('.tm-label'),
+        sx: parseFloat(el.dataset.svgx || '0'),
+        sy: parseFloat(el.dataset.svgy || '0'),
+        frames: parseInt(el.dataset.frames || '0', 10),
+      }))
+      .sort((a, b) => b.frames - a.frames);
+
+    const baseView = (figure.dataset.viewbox || '0 0 2000 1000').split(' ').map(Number);
+    const WORLD_W = 2000;
+    const WORLD_H = 1000;
+    let vb = [...baseView];
+    const minZoomW = baseView[2] / 14;
+    const aspect = baseView[3] / baseView[2];
+
+    function clamp(v, lo, hi) {
+      return Math.min(hi, Math.max(lo, v));
+    }
+
+    function layout() {
+      if (svg) svg.setAttribute('viewBox', vb.join(' '));
+      const visible = [];
+      for (const pin of pins) {
+        const px = ((pin.sx - vb[0]) / vb[2]) * 100;
+        const py = ((pin.sy - vb[1]) / vb[3]) * 100;
+        const show = px >= -4 && px <= 104 && py >= -4 && py <= 104;
+        pin.el.style.display = show ? '' : 'none';
+        if (!show) {
+          pin.label.style.visibility = 'hidden';
+          continue;
+        }
+        pin.el.style.left = px.toFixed(2) + '%';
+        pin.el.style.top = py.toFixed(2) + '%';
+        visible.push(pin);
+      }
+      // 标签碰撞检测
+      const placed = [];
+      for (const pin of visible) {
+        const rect = pin.label.getBoundingClientRect();
+        const hit = placed.some(r =>
+          !(rect.right < r.left - 4 || rect.left > r.right + 4 || rect.bottom < r.top - 2 || rect.top > r.bottom + 2)
+        );
+        pin.label.style.visibility = hit ? 'hidden' : 'visible';
+        if (!hit) placed.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+      }
+    }
+
+    function clampViewBox() {
+      vb[2] = clamp(vb[2], minZoomW, WORLD_W);
+      vb[3] = vb[2] * aspect;
+      vb[0] = clamp(vb[0], 0, WORLD_W - vb[2]);
+      vb[1] = clamp(vb[1], 0, WORLD_H - vb[3]);
+    }
+
+    function zoomAt(clientX, clientY, factor) {
+      const rect = canvas.getBoundingClientRect();
+      const px = clientX - rect.left;
+      const py = clientY - rect.top;
+      const fx = vb[0] + (px / rect.width) * vb[2];
+      const fy = vb[1] + (py / rect.height) * vb[3];
+      vb[2] = clamp(vb[2] / factor, minZoomW, WORLD_W);
+      vb[3] = vb[2] * aspect;
+      vb[0] = fx - (px / rect.width) * vb[2];
+      vb[1] = fy - (py / rect.height) * vb[3];
+      clampViewBox();
+      layout();
+    }
+
+    // Ctrl/Cmd + 滚轮缩放，否则提示
+    let hintTimer;
+    figure.addEventListener(
+      'wheel',
+      (e) => {
+        if (!e.ctrlKey && !e.metaKey) {
+          figure.classList.add('is-hint');
+          clearTimeout(hintTimer);
+          hintTimer = setTimeout(() => figure.classList.remove('is-hint'), 1200);
+          return;
+        }
+        e.preventDefault();
+        zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016));
+      },
+      { passive: false }
+    );
+
+    // 双击放大 / 复位
+    figure.addEventListener('dblclick', (e) => {
+      if (vb[2] <= minZoomW * 1.05) {
+        vb = [...baseView];
+        layout();
+      } else {
+        zoomAt(e.clientX, e.clientY, 2);
+      }
+    });
+
+    // 拖拽平移 + 双指捏合缩放
+    const pointers = new Map();
+    let lastDist = 0;
+    let dragged = false;
+
+    canvas.addEventListener('pointerdown', (e) => {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      dragged = false;
+      if (pointers.size === 1) canvas.classList.add('is-grab');
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      const prev = pointers.get(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const list = [...pointers.values()];
+      const rect = canvas.getBoundingClientRect();
+
+      if (list.length >= 2) {
+        const dist = Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y);
+        if (lastDist) {
+          const midX = (list[0].x + list[1].x) / 2;
+          const midY = (list[0].y + list[1].y) / 2;
+          zoomAt(midX, midY, dist / lastDist);
+        }
+        lastDist = dist;
+        dragged = true;
+      } else {
+        const dx = e.clientX - prev.x;
+        const dy = e.clientY - prev.y;
+        if (Math.hypot(dx, dy) > 4) dragged = true;
+        vb[0] -= (dx / rect.width) * vb[2];
+        vb[1] -= (dy / rect.height) * vb[3];
+        clampViewBox();
+        layout();
+      }
+    });
+
+    function endPointer(e) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) lastDist = 0;
+      if (pointers.size === 0) canvas.classList.remove('is-grab');
+    }
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+    canvas.addEventListener('pointerleave', (e) => {
+      if (pointers.size === 1) pointers.delete(e.pointerId);
+    });
+
+    // 拖拽后抑制图钉跳转
+    canvas.addEventListener('click', (e) => {
+      if (dragged) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
+    window.addEventListener('resize', layout);
+    layout();
+  }
+</script>
+
+<style>
+  .travel-map {
+    position: relative;
+    z-index: 0;
+    height: 460px;
+    margin-bottom: 48px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-alt);
+    cursor: grab;
+    touch-action: pan-y;
+  }
+  .tm-view {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  .tm-canvas {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 2;
+  }
+  .tm-canvas.is-grab {
+    cursor: grabbing;
+  }
+  .tm-svg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .tm-svg :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .tm-svg :global(.worldmap-land) {
+    fill: var(--border-strong);
+    stroke: var(--bg);
+    stroke-width: 0.5;
+    opacity: 0.9;
+  }
+  .tm-pin {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .tm-pin-dot {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #c0392b;
+    border: 2.5px solid var(--bg);
+    box-shadow: 0 0 0 3px color-mix(in srgb, #c0392b 28%, transparent);
+  }
+  .tm-pin--latest .tm-pin-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid #c0392b;
+    animation: tm-breathe 2.2s ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes tm-breathe {
+    0% {
+      transform: scale(0.8);
+      opacity: 1;
+    }
+    70% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tm-pin--latest .tm-pin-dot::after {
+      animation: none;
+    }
+  }
+  .tm-label {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--text);
+    white-space: nowrap;
+    text-shadow: 0 1px 2px var(--bg);
+  }
+  .tm-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 3;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--surface);
+    padding: 4px 10px;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  }
+  .travel-map.is-hint .tm-hint {
+    opacity: 1;
+  }
+  @media (max-width: 768px) {
+    .travel-map {
+      height: 320px;
+    }
+  }
+</style>
