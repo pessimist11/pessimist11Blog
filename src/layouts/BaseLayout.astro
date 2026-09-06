@@ -8,16 +8,60 @@ export interface Props {
   description?: string;
   image?: string;
   type?: 'website' | 'article';
+  pubDate?: Date;
 }
 
-const { title, description, image, type = 'website' } = Astro.props;
+const { title, description, image, type = 'website', pubDate } = Astro.props;
 
+const siteName = 'pessimist11';
+const siteUrl = Astro.site ?? new URL('https://pessimist11.pages.dev');
+const authorName = 'pessimist11 (saki)';
+const githubUrl = 'https://github.com/pessimist11';
 const defaultDescription = '记录无意义的生命中可能有意义的瞬间';
 const ogDescription = description || defaultDescription;
-const pageTitle = `${title} — pessimist11`;
-const siteUrl = Astro.site ?? new URL('https://pessimist11.pages.dev');
+const pageTitle = `${title} — ${siteName}`;
 const ogUrl = new URL(Astro.url.pathname, siteUrl).toString();
-const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
+const canonical = ogUrl;
+const defaultOg = new URL('/og.jpg', siteUrl).toString();
+const ogImage = image ? new URL(image, siteUrl).toString() : defaultOg;
+const isDefaultOg = !image;
+
+const graph: any[] = [
+  {
+    '@type': 'Person',
+    '@id': `${siteUrl}#person`,
+    name: authorName,
+    url: siteUrl,
+    image: defaultOg,
+    description: defaultDescription,
+    knowsAbout: ['技术', '摄影', '随笔', '香水'],
+    sameAs: [githubUrl],
+  },
+  {
+    '@type': 'WebSite',
+    '@id': `${siteUrl}#website`,
+    url: siteUrl,
+    name: siteName,
+    description: defaultDescription,
+    inLanguage: 'zh-CN',
+    publisher: { '@id': `${siteUrl}#person` },
+  },
+];
+if (type === 'article') {
+  graph.push({
+    '@type': 'BlogPosting',
+    headline: title,
+    description: ogDescription,
+    url: canonical,
+    image: ogImage,
+    datePublished: pubDate?.toISOString(),
+    inLanguage: 'zh-CN',
+    author: { '@type': 'Person', name: authorName, url: siteUrl },
+    publisher: { '@id': `${siteUrl}#person` },
+    mainEntityOfPage: canonical,
+  });
+}
+const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
 ---
 
 <!doctype html>
@@ -76,6 +120,9 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
     </script>
     <ClientRouter />
     <meta name="description" content={ogDescription} />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href={canonical} />
+    <script type="application/ld+json" set:html={jsonLd} />
     <title>{pageTitle}</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="alternate" type="application/rss+xml" title="pessimist11" href="/rss.xml" />
@@ -88,7 +135,13 @@ const ogImage = image ? new URL(image, siteUrl).toString() : undefined;
     <meta property="og:url" content={ogUrl} />
     <meta property="og:site_name" content="pessimist11" />
     <meta property="og:locale" content="zh_CN" />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta property="og:image" content={ogImage} />
+    {isDefaultOg && (
+      <>
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+      </>
+    )}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={ogDescription} />

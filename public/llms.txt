@@ -1,0 +1,36 @@
+# pessimist11
+
+> 个人博客，「知·思·帧·馥」四个栏目。记录无意义的生命中可能有意义的瞬间。
+> 语种：简体中文。作者：pessimist11（saki）。
+
+pessimist11 是一个基于 Astro 5 静态生成的个人站点，发布技术分享、随笔感悟、
+旅行摄影与香水试香笔记。摄影作品用富士 X-T5 拍摄。
+
+## 关键信息
+
+- 站点标题：pessimist11（知·思·帧·馥）
+- 副标题 / 站点描述：记录无意义的生命中可能有意义的瞬间
+- 作者：pessimist11（saki）
+- 联系邮箱：icecode19@gmail.com
+- GitHub：https://github.com/pessimist11
+- RSS：https://pessimist11.pages.dev/rss.xml
+
+## 栏目
+
+- 知（TECH，技术分享）：https://pessimist11.pages.dev/zhi/
+  - 编程、框架、工程实践。
+- 思（THINKING，随笔感悟）：https://pessimist11.pages.dev/si/
+  - 生活记录与随想。
+- 帧（TRAVEL，旅行摄影）：https://pessimist11.pages.dev/zhen/
+  - 城市漫步与风光，含世界地图与照片画廊。
+- 馥（SCENT，香气笔记）：https://pessimist11.pages.dev/fu/
+  - 香水试香与评价。
+
+## 其他页面
+
+- 关于：https://pessimist11.pages.dev/about/
+
+## 说明
+
+本文件为 llms.txt 站点导览，供 AI 引擎理解网站结构。站点内容全部为作者原创，
+如需引用请注明出处。

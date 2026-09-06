@@ -15,7 +15,7 @@ export interface Props {
 const { title, pubDate, tags, description, image, categoryName, backHref, backLabel } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description} image={image} type="article">
+<BaseLayout title={title} description={description} image={image} type="article" pubDate={pubDate}>
   <article class="article-wrap">
     {backHref && (
       <a href={backHref} class="back-link">← 返回<span> {backLabel || '上一级'}</span></a>
