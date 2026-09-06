@@ -6,6 +6,11 @@ import TravelMap from '@/components/TravelMap.astro';
 const posts = await getCollection('zhen');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 
+// 帧总数 = 相册实际照片数（与各辑「N帧」标签口径一致）
+const galleryModules = import.meta.glob('/src/assets/gallery/**/*.{jpg,jpeg,png,webp,avif}', { eager: true });
+const totalFrames = Object.keys(galleryModules).length;
+const latest = sorted[0];
+
 // 去过的地方（地图用）
 const places = sorted
   .filter(p => typeof p.data.lat === 'number' && typeof p.data.lng === 'number')
@@ -29,6 +34,22 @@ const places = sorted
     </div>
     <p class="section-intro">镜头截取的时间切片，快门按下记录不可逆的一帧。</p>
 
+    <div class="zhen-series reveal">
+      <div class="zhen-series-head">
+        <div class="zhen-series-label">系列策展</div>
+        <div class="zhen-series-count">{totalFrames} 帧 · {sorted.length} 辑</div>
+      </div>
+      {latest && (
+        <a href={`/zhen/${latest.id.replace(/\.(md|mdx)$/, '')}/`} class="zhen-series-featured">
+          <span class="zhen-series-title">《{latest.data.title}》</span>
+          <span class="zhen-series-sub">
+            {latest.data.location || ''}{latest.data.coverImages?.length ? ` · ${latest.data.coverImages.length} 帧` : ''}
+          </span>
+          <span class="zhen-series-enter">进入系列 →</span>
+        </a>
+      )}
+    </div>
+
     <TravelMap places={places} />
 
     <ul class="magazine-list">
@@ -50,3 +71,60 @@ const places = sorted
   </div>
 
 </BaseLayout>
+
+<style>
+  .zhen-series {
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 22px 24px;
+    margin: 28px 0 48px;
+    background: var(--surface);
+  }
+  .zhen-series-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .zhen-series-label {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .zhen-series-count {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .zhen-series-featured {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .zhen-series-title {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .zhen-series-sub {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .zhen-series-enter {
+    color: var(--accent);
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .zhen-series-featured:hover .zhen-series-enter {
+    color: var(--accent-hover);
+  }
+  @media (max-width: 640px) {
+    .zhen-series-title {
+      font-size: 26px;
+    }
+  }
+</style>

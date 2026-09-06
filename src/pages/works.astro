@@ -1,0 +1,94 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="WORK">
+  <div class="page-wrap">
+    <div class="page-heading reveal">
+      <div class="page-heading-en">Works</div>
+      <h1 class="page-heading-zh">作品</h1>
+    </div>
+
+    <p class="section-intro reveal">记录我做的、以及正在做的东西。</p>
+
+    <ul class="works-list reveal">
+      <li class="work-card">
+        <div class="work-status work-status--live">在线</div>
+        <h2 class="work-title">pessimist11.net</h2>
+        <p class="work-desc">本站。基于 Astro 5 静态生成，四栏目「知·思·帧·馥」，含自研世界地图与相册画廊。</p>
+        <div class="work-link"><a href="/">访问本站 →</a></div>
+      </li>
+      <li class="work-card">
+        <div class="work-status work-status--live">在线</div>
+        <h2 class="work-title">帧 · 世界地图</h2>
+        <p class="work-desc">自研 SVG 等距圆柱投影世界地图：拖拽平移、Ctrl / ⌘ 缩放、双指捏合、图钉标签碰撞检测。</p>
+        <div class="work-link"><a href="/zhen/">去「帧」看看 →</a></div>
+      </li>
+      <li class="work-card">
+        <div class="work-status work-status--live">在线</div>
+        <h2 class="work-title">相册画廊</h2>
+        <p class="work-desc">构建期自动优化照片管线 + 响应式 Lightbox 预览 + 首页随机精选图。</p>
+        <div class="work-link"><a href="/zhen/">浏览相册 →</a></div>
+      </li>
+      <li class="work-card">
+        <div class="work-status">开发中</div>
+        <h2 class="work-title">···（待补充）</h2>
+        <p class="work-desc">这里是占位卡片，等你补充真正的开源项目或作品。</p>
+        <div class="work-link"><a href="https://github.com/pessimist11" target="_blank" rel="noopener">GitHub →</a></div>
+      </li>
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .works-list {
+    display: grid;
+    gap: 20px;
+    list-style: none;
+    margin: 32px 0 0;
+    padding: 0;
+  }
+  .work-card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 26px;
+    background: var(--surface);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .work-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+  .work-status {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 2px 10px;
+    margin-bottom: 12px;
+  }
+  .work-status--live {
+    color: #1a7f37;
+    border-color: #1a7f37;
+  }
+  .work-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .work-desc {
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin: 0 0 12px;
+  }
+  .work-link a {
+    color: var(--accent);
+    font-size: 15px;
+    text-decoration: none;
+  }
+  .work-link a:hover {
+    color: var(--accent-hover);
+  }
+</style>

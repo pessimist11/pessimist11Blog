@@ -28,6 +28,7 @@ const files = await walk(SRC);
 console.log(`[optimize-gallery] ${files.length} 张照片 → public/gallery（宽 ${WIDTH}px）`);
 
 let saved = 0;
+const manifest = {};
 for (const file of files) {
   const rel = path.relative(SRC, file);
   const out = path.join(DEST, rel);
@@ -47,6 +48,13 @@ for (const file of files) {
       await copyFile(file, out); // 重编码更大 → 保留原图
     }
 
+    // 登记实际输出尺寸，供正文图补 <img width/height> 以消除 CLS
+    const meta = await sharp(out).metadata();
+    manifest['/gallery/' + rel.split(path.sep).join('/')] = {
+      width: meta.width,
+      height: meta.height,
+    };
+
     const finalSize = Math.min(buffer.length, before);
     saved += before - finalSize;
     console.log(`  ${rel}  ${(before / 1024).toFixed(0)}KB → ${(finalSize / 1024).toFixed(0)}KB`);
@@ -55,4 +63,5 @@ for (const file of files) {
   }
 }
 
-console.log(`[optimize-gallery] 完成，共节省 ${(saved / 1024 / 1024).toFixed(1)}MB`);
+await writeFile(path.join(DEST, 'manifest.json'), JSON.stringify(manifest));
+console.log(`[optimize-gallery] 完成，共节省 ${(saved / 1024 / 1024).toFixed(1)}MB，已生成尺寸清单 manifest.json`);
