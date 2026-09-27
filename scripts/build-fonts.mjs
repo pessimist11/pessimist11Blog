@@ -80,6 +80,10 @@ async function collectChars() {
 
   for (const ch of chars) {
     const cp = ch.codePointAt(0);
+    // 跳过控制字符（\n \t \r 等）—— 它们不需要字形。
+    // 尤其是 \r：本地文件是 CRLF、CI 检出按 .gitattributes 是 LF，
+    // 若把它算进字符集，本地与 Cloudflare 生成的拉丁子集就会不一致（哈希对不上）。
+    if (cp < 0x20 || cp === 0x7f) continue;
     // 0x2E80 以下（ASCII、拉丁扩展、通用标点）交给 EB Garamond
     if (cp < 0x2e80) latin.add(ch);
     // 汉字、假名、全角形式交给思源宋体
