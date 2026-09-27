@@ -1,15 +1,19 @@
 ---
 import '@/styles/global.css';
 import { ClientRouter } from 'astro:transitions';
-// 自托管字体（Fontsource），已按 latin / 简体中文 子集化，无第三方请求
-import '@fontsource/eb-garamond/latin-400.css';
-import '@fontsource/eb-garamond/latin-500.css';
-import '@fontsource/eb-garamond/latin-600.css';
-import '@fontsource/eb-garamond/latin-700.css';
-import '@fontsource/eb-garamond/latin-400-italic.css';
-import '@fontsource/noto-serif-sc/chinese-simplified-400.css';
-import '@fontsource/noto-serif-sc/chinese-simplified-600.css';
-import '@fontsource/noto-serif-sc/chinese-simplified-700.css';
+import { readFileSync } from 'node:fs';
+
+// 字体子集由 scripts/build-fonts.mjs 生成到 public/fonts/（已 gitignore，每次构建重建）。
+// 这里构建时读入并内联，省掉一次额外请求；文件缺失时优雅降级（只是没有 @font-face）。
+let fontCss = '';
+let fontPreload: string[] = [];
+try {
+  const dir = new URL('../../public/fonts/', import.meta.url);
+  fontCss = readFileSync(new URL('fonts.css', dir), 'utf8');
+  fontPreload = JSON.parse(readFileSync(new URL('manifest.json', dir), 'utf8')).preload ?? [];
+} catch {
+  console.warn('[BaseLayout] 未找到 public/fonts/，先运行 npm run fonts');
+}
 
 export interface Props {
   title: string;
@@ -128,6 +132,10 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
       })();
     </script>
     <ClientRouter />
+    <style is:inline set:html={fontCss}></style>
+    {fontPreload.map((href) => (
+      <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />
+    ))}
     <meta name="description" content={ogDescription} />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href={canonical} />
