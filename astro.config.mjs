@@ -7,8 +7,7 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [
     sitemap({
-      // /enter/ 是门厅页（已标 noindex），让它只作为入口存在，不进 sitemap
-      filter: (page) => !page.includes('/404') && !page.includes('/enter'),
+      filter: (page) => !page.includes('/404'),
     }),
   ],
   markdown: {

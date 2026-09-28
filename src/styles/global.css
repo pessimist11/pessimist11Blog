@@ -165,30 +165,6 @@ main {
   padding-top: var(--nav-height);
 }
 
-/* Hero */
-.hero {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 120px 28px 80px;
-}
-
-.hero-name {
-  font-size: clamp(40px, 5.5vw, 62px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  margin-bottom: 14px;
-}
-
-.hero-tagline {
-  font-size: clamp(18px, 2.4vw, 22px);
-  color: var(--text-muted);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  max-width: 520px;
-  line-height: 1.6;
-}
-
 /* Homepage sections */
 .home-section {
   max-width: var(--max-width);
@@ -681,10 +657,6 @@ footer {
   .nav-links a {
     padding: 6px 8px;
     font-size: 18px;
-  }
-
-  .hero {
-    padding: 90px 18px 60px;
   }
 
   .home-section {
