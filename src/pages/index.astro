@@ -17,10 +17,13 @@ const fuPosts = fu.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getT
 const zhenPosts = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 
 // 收集帧文章的所有封面照片，构建时随机打乱
+// 只取横构图：首页大图现在是全宽出血的宽幅裁切（桌面约 2.4:1），
+// 竖构图会被裁掉大半，只剩中间一条，观感很差。
 const allPhotos = zhen
   .flatMap(p => (p.data.coverImages?.length ? p.data.coverImages : p.data.coverImage ? [p.data.coverImage] : []))
   .map(galleryImage)
   .filter((photo): photo is ImageMetadata => Boolean(photo))
+  .filter((photo) => photo.width >= photo.height)
   .sort(() => Math.random() - 0.5);
 const featuredPhoto = allPhotos[0] ?? galleryImage('/gallery/nanjing/DSCF0876.jpg')!;
 
