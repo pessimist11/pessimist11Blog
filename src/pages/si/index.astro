@@ -27,8 +27,8 @@ for (const post of sorted) {
       <section class="year-group reveal">
         <h2 class="year-label">{year}</h2>
         <ul class="magazine-list">
-          {yearPosts.map(post => (
-            <li class="magazine-item">
+          {yearPosts.map((post, i) => (
+            <li class="magazine-item reveal" style={`--i: ${i}`}>
               <a href={`/si/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
                 <div class="magazine-date">
                   {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}

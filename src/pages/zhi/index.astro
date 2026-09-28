@@ -14,8 +14,8 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
     </div>
     <p class="section-intro">纸上得来终觉浅，绝知此事要躬行。</p>
     <ul class="magazine-list reveal">
-      {sorted.map(post => (
-        <li class="magazine-item">
+      {sorted.map((post, i) => (
+        <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/zhi/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
             <div class="magazine-date">
               {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}

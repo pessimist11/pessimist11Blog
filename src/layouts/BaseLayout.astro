@@ -83,6 +83,11 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script is:inline>
+      // 标记 JS 可用：入场动效的初始 opacity:0 只在 .js 下生效。
+      // 这样 JS 被禁用或脚本加载失败时，内容不会永远停在不可见状态。
+      document.documentElement.classList.add('js');
+    </script>
+    <script is:inline>
       // 进页面前定主题，避免闪色：localStorage 优先，其次跟随系统
       (() => {
         const KEY = 'theme';

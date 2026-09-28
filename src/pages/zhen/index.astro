@@ -53,8 +53,8 @@ const places = sorted
     <TravelMap places={places} />
 
     <ul class="magazine-list">
-      {sorted.map(post => (
-        <li class="magazine-item">
+      {sorted.map((post, i) => (
+        <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/zhen/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
             <div class="magazine-date">
               {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}

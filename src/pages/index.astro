@@ -58,8 +58,8 @@ function slug(id: string) {
       <h2 class="home-section-zh">知</h2>
     </div>
     <ul class="magazine-list">
-      {zhiPosts.map(post => (
-        <li class="magazine-item">
+      {zhiPosts.map((post, i) => (
+        <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/zhi/${slug(post.id)}/`}>
             <div class="magazine-date">
               {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -80,8 +80,8 @@ function slug(id: string) {
       <h2 class="home-section-zh">思</h2>
     </div>
     <ul class="magazine-list">
-      {siPosts.map(post => (
-        <li class="magazine-item">
+      {siPosts.map((post, i) => (
+        <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/si/${slug(post.id)}/`}>
             <div class="magazine-date">
               {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -102,8 +102,8 @@ function slug(id: string) {
       <h2 class="home-section-zh">帧</h2>
     </div>
     <ul class="magazine-list">
-      {zhenPosts.map(post => (
-        <li class="magazine-item">
+      {zhenPosts.map((post, i) => (
+        <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/zhen/${slug(post.id)}/`}>
             <div class="magazine-date">
               {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -124,8 +124,8 @@ function slug(id: string) {
       <h2 class="home-section-zh">馥</h2>
     </div>
     <ul class="magazine-list">
-      {fuPosts.map(post => (
-        <li class="magazine-item">
+      {fuPosts.map((post, i) => (
+        <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/fu/${slug(post.id)}/`}>
             <div class="magazine-date">
               {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
