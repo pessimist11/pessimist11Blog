@@ -373,6 +373,38 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
           return v;
         }
 
+        // 无三角函数哈希：浮尘每像素要算 18 个格子，用 sin 哈希开销过大
+        vec2 hash2(vec2 p) {
+          vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.xx + p3.yz) * p3.zy);
+        }
+
+        // 浮尘 / 星屑：屏幕空间网格粒子。
+        // 把画面切成格子，每格放一个粒子，查 3×3 邻域避免跨格被裁掉。
+        // 比用 THREE.Points 便宜：不需要额外几何体、相机通道和逐帧 CPU 更新。
+        float dust(vec2 uv, float scale, float t, float speed, float size) {
+          vec2 g = uv * scale;
+          vec2 id = floor(g);
+          float acc = 0.0;
+          for (int y = -1; y <= 1; y++) {
+            for (int x = -1; x <= 1; x++) {
+              vec2 c = id + vec2(float(x), float(y));
+              vec2 h = hash2(c);
+              // 格内位置 + 极缓的漂浮（用正弦往复，避免粒子漂出格子）
+              vec2 pos = c + 0.5 + (h - 0.5) * 0.72;
+              pos.x += sin(t * speed + h.y * 6.283) * 0.30;
+              pos.y += cos(t * speed * 0.78 + h.x * 6.283) * 0.26;
+              float d = length(g - pos);
+              // 明灭闪烁，让粒子不像静态噪点。用三角波代替 sin，省掉循环内的三角函数
+              float ph = fract(t * (0.06 + h.y * 0.05) + h.x);
+              float tw = 0.55 + 0.45 * (1.0 - abs(ph * 2.0 - 1.0));
+              acc += smoothstep(size, 0.0, d) * tw * (0.3 + 0.7 * h.y);
+            }
+          }
+          return acc;
+        }
+
         // 横向拉伸的水墨云带
         float cloudField(vec2 p, float t) {
           vec2 q = vec2(p.x * 0.85, p.y * 3.2 + t * 0.02);
@@ -429,6 +461,11 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
           float cl = cloudField(p, uTime);
           col = mix(col, uInk, cl * 0.17);
 
+          // 浮尘：细密一层 + 疏朗一层，叠出景深
+          float d1 = dust(p, 24.0, uTime, 0.22, 0.052);
+          float d2 = dust(p * 0.62 + 7.3, 12.0, uTime, 0.13, 0.085);
+          col = mix(col, uInk, clamp(d1 * 0.15 + d2 * 0.11, 0.0, 0.45));
+
           // 纸纹颗粒，避免大面积平色
           col *= 0.994 + 0.012 * hash(vec3(gl_FragCoord.xy, 3.7));
 
@@ -453,7 +490,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
         const uniforms = {
           uRes: { value: new THREE.Vector2(1, 1) },
           uTime: { value: 0 },
-          uCamZ: { value: 6.2 },
+          uCamZ: { value: 4.5 },
           uPaper: { value: cssColor('--paper', '#f3efe8') },
           uInk: { value: cssColor('--ink', '#1a1a1a') },
           uLight: { value: new THREE.Vector3(-0.45, 0.28, 0.85).normalize() },
@@ -474,7 +511,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
           renderer.setSize(w, h, false);
           uniforms.uRes.value.set(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
           // 窄屏把相机拉远，保证月球不出画
-          uniforms.uCamZ.value = 6.2 / Math.max(Math.min(w / h, 1), 0.66);
+          uniforms.uCamZ.value = 4.5 / Math.max(Math.min(w / h, 1), 0.66);
         }
 
         let raf = 0;
