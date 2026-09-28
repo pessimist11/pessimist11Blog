@@ -1,0 +1,457 @@
+---
+// 入场页 /enter/
+//
+// 整屏水墨月景：纸白底 + 淡墨月 + 横云，右下角「进入」回到首页。
+// 不套 BaseLayout —— 不需要导航/页脚/水印，保持沉浸。
+//
+// 月与云都由片元着色器程序化生成（fbm 噪声 + 解析球面求交），不依赖任何外部贴图。
+// 配色跟随站点主题：亮色=纸白淡墨，暗色=墨底素月，色值从 CSS 变量读取。
+//
+// 字体复用构建产物 /fonts/fonts.css（见 scripts/build-fonts.mjs）。
+import { readFileSync } from 'node:fs';
+
+let fontPreload: string[] = [];
+try {
+  const manifest = new URL('../../../public/fonts/manifest.json', import.meta.url);
+  fontPreload = JSON.parse(readFileSync(manifest, 'utf8')).preload ?? [];
+} catch {
+  console.warn('[enter] 未找到 public/fonts/manifest.json，先运行 npm run fonts');
+}
+
+// 题句：默认用站点既有标语（自己的话）。想换改这两行即可。
+const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f3efe8" />
+    <meta name="robots" content="noindex" />
+    <title>pessimist11</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    {fontPreload.map((href) => <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />)}
+    <script is:inline>
+      // 与 BaseLayout 一致：进页面前定主题，避免闪色
+      (() => {
+        const KEY = 'theme';
+        const stored = localStorage.getItem(KEY);
+        const theme = stored === 'dark' || stored === 'light'
+          ? stored
+          : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+    <style>
+      :root {
+        --paper: #f3efe8;
+        --ink: #1a1a1a;
+        --muted: rgba(26, 26, 26, 0.55);
+        --faint: rgba(26, 26, 26, 0.22);
+        --serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+        --latin: 'EB Garamond', 'Noto Serif SC', serif;
+        --ease: cubic-bezier(0.16, 0.84, 0.28, 1);
+      }
+
+      :global([data-theme='dark']) {
+        --paper: #101113;
+        --ink: #e8e8e8;
+        --muted: rgba(232, 232, 232, 0.5);
+        --faint: rgba(232, 232, 232, 0.2);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { height: 100%; }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        transition: background 0.4s ease;
+      }
+
+      /* ── 舞台 ─────────────────────────────────────── */
+      .stage {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      canvas[data-lunar] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      /* 纸的纤维质地（纯 CSS，叠在 canvas 上，也让无 WebGL 时页面不空） */
+      .grain {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.5;
+        mix-blend-mode: multiply;
+        background-image:
+          radial-gradient(circle at 18% 26%, rgba(0, 0, 0, 0.025) 0 1px, transparent 1px),
+          radial-gradient(circle at 63% 71%, rgba(0, 0, 0, 0.02) 0 1px, transparent 1px),
+          radial-gradient(circle at 84% 18%, rgba(0, 0, 0, 0.018) 0 1px, transparent 1px);
+        background-size: 7px 7px, 11px 11px, 13px 13px;
+      }
+
+      :global([data-theme='dark']) .grain {
+        mix-blend-mode: screen;
+        opacity: 0.25;
+        background-image:
+          radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px),
+          radial-gradient(circle at 63% 71%, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px);
+      }
+
+      /* 无 WebGL 时的兜底月亮 */
+      .fallback {
+        display: none;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: min(42vmin, 380px);
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 34% 30%, rgba(0, 0, 0, 0.07) 0 9%, transparent 10%),
+          radial-gradient(circle at 62% 58%, rgba(0, 0, 0, 0.055) 0 12%, transparent 13%),
+          radial-gradient(circle at 46% 74%, rgba(0, 0, 0, 0.045) 0 8%, transparent 9%),
+          radial-gradient(circle at 38% 34%, rgba(0, 0, 0, 0.015) 0%, rgba(0, 0, 0, 0.09) 100%);
+        opacity: 0.9;
+      }
+
+      :global(html.no-webgl) .fallback { display: block; }
+      :global(html.no-webgl) canvas[data-lunar] { display: none; }
+
+      /* ── 题句与署名 ───────────────────────────────── */
+      .intro {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(88vw, 720px);
+        text-align: center;
+        pointer-events: none;
+      }
+
+      .sig {
+        margin: 0 0 clamp(20px, 3.6vh, 40px);
+        font-family: var(--latin);
+        font-size: clamp(25px, 4.4vw, 46px);
+        font-weight: 400;
+        letter-spacing: 0.24em;
+        text-indent: 0.24em;
+        color: var(--ink);
+        clip-path: inset(0 100% 0 0);
+        animation: ink-write 2.4s var(--ease) 0.3s forwards;
+      }
+
+      /* 墨迹自左向右渗出，模拟运笔 */
+      @keyframes ink-write {
+        to { clip-path: inset(0 0 0 0); }
+      }
+
+      .verse {
+        margin: 0;
+        font-size: clamp(14px, 1.4vw, 18px);
+        line-height: 2.1;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        opacity: 0;
+        animation: rise 1.6s var(--ease) 2s forwards;
+      }
+
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: none; }
+      }
+
+      /* ── 右下角进入 ───────────────────────────────── */
+      .enter {
+        position: absolute;
+        right: clamp(22px, 4vw, 56px);
+        bottom: clamp(22px, 4vh, 52px);
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 2px;
+        font-family: var(--latin);
+        font-size: clamp(14px, 1.3vw, 17px);
+        letter-spacing: 0.22em;
+        text-indent: 0.22em;
+        color: var(--muted);
+        text-decoration: none;
+        border-bottom: 1px solid var(--faint);
+        transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+        opacity: 0;
+        animation: rise 1.2s var(--ease) 2.5s forwards;
+      }
+
+      .enter .arrow {
+        display: inline-block;
+        transition: transform 0.35s var(--ease);
+      }
+
+      .enter:hover {
+        color: var(--ink);
+        border-bottom-color: var(--muted);
+      }
+
+      .enter:hover .arrow { transform: translateX(6px); }
+
+      .enter:focus-visible {
+        outline: 2px solid var(--muted);
+        outline-offset: 6px;
+      }
+
+      /* 左下角小注 */
+      .colophon {
+        position: absolute;
+        left: clamp(22px, 4vw, 56px);
+        bottom: clamp(22px, 4vh, 52px);
+        margin: 0;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        color: var(--faint);
+        opacity: 0;
+        animation: rise 1.2s var(--ease) 2.7s forwards;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .sig { clip-path: none; animation: none; }
+        .verse, .enter, .colophon { opacity: 1; animation: none; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="stage">
+      <canvas data-lunar aria-hidden="true"></canvas>
+      <div class="grain" aria-hidden="true"></div>
+      <div class="fallback" aria-hidden="true"></div>
+
+      <div class="intro">
+        <h1 class="sig">PESSIMIST11</h1>
+        <p class="verse">
+          {verse[0]}<br />{verse[1]}
+        </p>
+      </div>
+
+      <p class="colophon">二〇二六 · 入场</p>
+      <a class="enter" href="/">进入 <span class="arrow" aria-hidden="true">→</span></a>
+    </div>
+
+    <script>
+      import * as THREE from 'three';
+
+      const canvas = document.querySelector('[data-lunar]');
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // 顶点着色器：整屏四边形，位置直接透传
+      const vert = /* glsl */ `
+        void main() {
+          gl_Position = vec4(position.xy, 0.0, 1.0);
+        }
+      `;
+
+      // 片元着色器：一屏画完「纸 + 月 + 云」。
+      // 月亮用解析球面求交（不需要几何体），云用横向拉伸的 fbm 噪声带。
+      const frag = /* glsl */ `
+        precision highp float;
+
+        uniform vec2  uRes;
+        uniform float uTime;
+        uniform float uCamZ;
+        uniform vec3  uPaper;   // 纸色
+        uniform vec3  uInk;     // 墨色
+        uniform vec3  uLight;   // 受光方向（只用来给月面一点体积感）
+
+        float hash(vec3 p) {
+          p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
+          p *= 17.0;
+          return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+        }
+
+        float noise(vec3 x) {
+          vec3 i = floor(x);
+          vec3 f = fract(x);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(
+            mix(mix(hash(i + vec3(0.0, 0.0, 0.0)), hash(i + vec3(1.0, 0.0, 0.0)), f.x),
+                mix(hash(i + vec3(0.0, 1.0, 0.0)), hash(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+            mix(mix(hash(i + vec3(0.0, 0.0, 1.0)), hash(i + vec3(1.0, 0.0, 1.0)), f.x),
+                mix(hash(i + vec3(0.0, 1.0, 1.0)), hash(i + vec3(1.0, 1.0, 1.0)), f.x), f.y),
+            f.z);
+        }
+
+        float fbm(vec3 p) {
+          float v = 0.0;
+          float a = 0.5;
+          for (int i = 0; i < 5; i++) {
+            v += a * noise(p);
+            p *= 2.07;
+            a *= 0.5;
+          }
+          return v;
+        }
+
+        // 横向拉伸的水墨云带
+        float cloudField(vec2 p, float t) {
+          vec2 q = vec2(p.x * 0.85, p.y * 3.2 + t * 0.02);
+          float f = fbm(vec3(q, t * 0.03));
+          f = smoothstep(0.38, 0.82, f);
+          float band = exp(-pow((p.y + 0.03) * 1.85, 2.0));
+          return f * band;
+        }
+
+        void main() {
+          vec2 p = (gl_FragCoord.xy / uRes.xy) * 2.0 - 1.0;
+          p.x *= uRes.x / uRes.y;
+
+          vec3 ro = vec3(0.0, 0.0, uCamZ);
+          vec3 rd = normalize(vec3(p * 0.287, -1.0));
+
+          // 解析求交：圆心在原点、半径 1
+          float b = dot(ro, rd);
+          float c = dot(ro, ro) - 1.0;
+          float h = b * b - c;
+
+          vec3 col = uPaper;
+
+          if (h > 0.0 && b < 0.0) {
+            float t = -b - sqrt(h);
+            vec3 pos = ro + rd * t;
+            vec3 n = normalize(pos);
+
+            // 绕 Y 轴自转：让贴图随月球转（世界法线反旋得到物体空间法线）
+            float a = -uTime * 0.017;
+            float cs = cos(a);
+            float sn = sin(a);
+            vec3 no = vec3(n.x * cs + n.z * sn, n.y, -n.x * sn + n.z * cs);
+
+            // 月海（低频暗斑）与环形山（高频细纹）
+            float maria = smoothstep(0.40, 0.70, fbm(no * 2.2));
+            float crater = fbm(no * 8.0);
+
+            vec3 moonCol = mix(uPaper, uInk, 0.10 + maria * 0.16);
+            moonCol = mix(moonCol, uInk, crater * 0.045);
+
+            // 极轻的受光，只给一点球体感，不画硬阴影
+            float diff = dot(n, normalize(uLight));
+            moonCol = mix(uPaper, moonCol, 0.80 + 0.20 * smoothstep(-0.7, 0.9, diff));
+
+            // 轮廓羽化：撞点离圆心越近越实，靠近边缘融进纸里
+            float impact = length(cross(ro, rd));
+            float edge = smoothstep(1.0, 0.955, impact);
+
+            col = mix(col, moonCol, edge);
+          }
+
+          // 云叠在最上层 —— 形成「月穿云中」
+          float cl = cloudField(p, uTime);
+          col = mix(col, uInk, cl * 0.17);
+
+          // 纸纹颗粒，避免大面积平色
+          col *= 0.994 + 0.012 * hash(vec3(gl_FragCoord.xy, 3.7));
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `;
+
+      function cssColor(name: string, fallback: string) {
+        const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return new THREE.Color(v || fallback);
+      }
+
+      function init() {
+        let renderer;
+        try {
+          renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+        } catch {
+          document.documentElement.classList.add('no-webgl');
+          return;
+        }
+
+        const uniforms = {
+          uRes: { value: new THREE.Vector2(1, 1) },
+          uTime: { value: 0 },
+          uCamZ: { value: 6.2 },
+          uPaper: { value: cssColor('--paper', '#f3efe8') },
+          uInk: { value: cssColor('--ink', '#1a1a1a') },
+          uLight: { value: new THREE.Vector3(-0.45, 0.28, 0.85).normalize() },
+        };
+
+        const material = new THREE.ShaderMaterial({ uniforms, vertexShader: vert, fragmentShader: frag });
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        // 整屏四边形：顶点位置已在着色器里直接输出
+        scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+
+        function resize() {
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          // 片元着色器是逐像素的，移动端把 DPR 压到 1.5 省电
+          const cap = Math.min(w, h) < 760 ? 1.5 : 2;
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
+          renderer.setSize(w, h, false);
+          uniforms.uRes.value.set(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
+          // 窄屏把相机拉远，保证月球不出画
+          uniforms.uCamZ.value = 6.2 / Math.max(Math.min(w / h, 1), 0.66);
+        }
+
+        let raf = 0;
+        let start = performance.now();
+
+        function frame(now: number) {
+          uniforms.uTime.value = (now - start) / 1000;
+          renderer.render(scene, camera);
+          raf = requestAnimationFrame(frame);
+        }
+
+        resize();
+        window.addEventListener('resize', resize, { passive: true });
+
+        // 主题切换（系统级）时刷新配色
+        matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          // 只在用户没手动选过主题时跟随
+          if (!localStorage.getItem('theme')) {
+            document.documentElement.setAttribute(
+              'data-theme',
+              matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+            );
+            uniforms.uPaper.value = cssColor('--paper', '#f3efe8');
+            uniforms.uInk.value = cssColor('--ink', '#1a1a1a');
+          }
+        });
+
+        if (reduced) {
+          renderer.render(scene, camera); // 只出一帧
+        } else {
+          raf = requestAnimationFrame(frame);
+          document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+              cancelAnimationFrame(raf);
+              raf = 0;
+            } else if (!raf) {
+              start = performance.now() - uniforms.uTime.value * 1000;
+              raf = requestAnimationFrame(frame);
+            }
+          });
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>
