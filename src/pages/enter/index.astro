@@ -373,6 +373,12 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
           return v;
         }
 
+        // 三角波：周期函数，但不需要三角函数。浮尘每像素要算 18 个格子，
+        // 用 sin 做漂浮/闪烁的话一帧就是上亿次超越函数调用，集显会掉帧。
+        float tri(float x) {
+          return 1.0 - 4.0 * abs(fract(x) - 0.5);
+        }
+
         // 无三角函数哈希：浮尘每像素要算 18 个格子，用 sin 哈希开销过大
         vec2 hash2(vec2 p) {
           vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
@@ -393,8 +399,8 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
               vec2 h = hash2(c);
               // 格内位置 + 极缓的漂浮（用正弦往复，避免粒子漂出格子）
               vec2 pos = c + 0.5 + (h - 0.5) * 0.72;
-              pos.x += sin(t * speed + h.y * 6.283) * 0.30;
-              pos.y += cos(t * speed * 0.78 + h.x * 6.283) * 0.26;
+              pos.x += tri(t * speed * 0.159 + h.y) * 0.30;
+              pos.y += tri(t * speed * 0.124 + h.x + 0.25) * 0.26;
               float d = length(g - pos);
               // 明灭闪烁，让粒子不像静态噪点。用三角波代替 sin，省掉循环内的三角函数
               float ph = fract(t * (0.06 + h.y * 0.05) + h.x);
