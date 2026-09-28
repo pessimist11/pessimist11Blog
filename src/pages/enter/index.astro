@@ -9,10 +9,15 @@
 //
 // 字体复用构建产物 /fonts/fonts.css（见 scripts/build-fonts.mjs）。
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
+// 注意：不要用 new URL('../../public/...', import.meta.url) ——
+// 对 src/pages/ 下的页面，构建时 import.meta.url 指向的是编译产物
+// dist/pages/xxx.astro.mjs，目录深度与源文件不一致，相对路径会算错。
+// 用 process.cwd()（构建/开发时都等于项目根）才可靠。
 let fontPreload: string[] = [];
 try {
-  const manifest = new URL('../../../public/fonts/manifest.json', import.meta.url);
+  const manifest = path.resolve('public/fonts/manifest.json');
   fontPreload = JSON.parse(readFileSync(manifest, 'utf8')).preload ?? [];
 } catch {
   console.warn('[enter] 未找到 public/fonts/manifest.json，先运行 npm run fonts');
