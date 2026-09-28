@@ -261,12 +261,30 @@ main {
   line-height: 1.6;
 }
 
-/* Feature photo banner —— 全宽出血 + 极慢 kenburns */
+/* Feature photo banner —— 全宽出血 + 极慢 kenburns
+   上下边缘用遮罩融进纸色，而不是叠一层渐变：
+   遮罩是「透出后面的纸」，颜色自动跟随明暗主题，也不会盖住照片本身的颜色。 */
 .feature-photo {
   position: relative;
   width: 100%;
   overflow: hidden;
   background: var(--bg-alt);
+  /* 顶部渐隐比底部更宽：上面接的是整屏的月亮（两个「屏」之间的过渡），
+     下面接的是文字栏目（照片到正文，不需要那么缓） */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16%,
+    #000 88%,
+    transparent 100%
+  );
 }
 
 /* 去掉内容栏约束，让照片通栏到视口边缘（main 本身已是全宽，无需 100vw hack） */
@@ -284,16 +302,6 @@ main {
   object-fit: cover;
   animation: hero-kenburns 26s ease-in-out infinite alternate;
   will-change: transform;
-}
-
-/* 底部渐隐到页面底色，避免通栏照片被硬生生截断（跟随明暗主题） */
-.feature-photo::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 14%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--bg));
-  pointer-events: none;
 }
 
 @keyframes hero-kenburns {
