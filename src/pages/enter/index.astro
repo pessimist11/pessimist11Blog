@@ -182,42 +182,39 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
         to   { opacity: 1; transform: none; }
       }
 
-      /* ── 右下角进入 ───────────────────────────────── */
-      .enter {
+      /* ── 下滑提示（不再有按钮，下滑即进入） ─────────── */
+      .cue {
         position: absolute;
-        right: clamp(22px, 4vw, 56px);
-        bottom: clamp(22px, 4vh, 52px);
-        display: inline-flex;
+        left: 50%;
+        bottom: clamp(20px, 3.6vh, 46px);
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 12px;
-        padding: 10px 2px;
-        font-family: var(--latin);
-        font-size: clamp(14px, 1.3vw, 17px);
-        letter-spacing: 0.22em;
-        text-indent: 0.22em;
-        color: var(--muted);
-        text-decoration: none;
-        border-bottom: 1px solid var(--faint);
-        transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+        gap: 8px;
+        color: var(--faint);
+        pointer-events: none;
         opacity: 0;
         animation: rise 1.2s var(--ease) 2.5s forwards;
       }
 
-      .enter .arrow {
-        display: inline-block;
-        transition: transform 0.35s var(--ease);
+      .cue .arrow {
+        font-family: var(--latin);
+        font-size: 14px;
+        line-height: 1;
       }
 
-      .enter:hover {
-        color: var(--ink);
-        border-bottom-color: var(--muted);
+      .cue .bar {
+        width: 1px;
+        height: 30px;
+        background: linear-gradient(to bottom, transparent, var(--faint) 40%, var(--muted));
+        animation: cue-slide 2.6s var(--ease) infinite;
       }
 
-      .enter:hover .arrow { transform: translateX(6px); }
-
-      .enter:focus-visible {
-        outline: 2px solid var(--muted);
-        outline-offset: 6px;
+      @keyframes cue-slide {
+        0%   { transform: scaleY(0.3); opacity: 0; }
+        35%  { opacity: 1; }
+        100% { transform: scaleY(1); opacity: 0.15; }
       }
 
       /* 左下角小注 */
@@ -233,9 +230,29 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
         animation: rise 1.2s var(--ease) 2.7s forwards;
       }
 
+      /* 无 JS 时的兜底入口：JS 可用时 noscript 不渲染，等于不存在 */
+      .enter-noscript {
+        position: absolute;
+        right: clamp(22px, 4vw, 56px);
+        bottom: clamp(22px, 4vh, 52px);
+        font-family: var(--latin);
+        font-size: clamp(14px, 1.3vw, 17px);
+        letter-spacing: 0.22em;
+        color: var(--muted);
+        text-decoration: none;
+        border-bottom: 1px solid var(--faint);
+      }
+
+      /* 离场：整屏淡出，再跳转主页 */
+      html.leaving .stage {
+        opacity: 0;
+        transition: opacity 0.46s ease;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .sig { clip-path: none; animation: none; }
-        .verse, .enter, .colophon { opacity: 1; animation: none; }
+        .verse, .cue, .colophon { opacity: 1; animation: none; }
+        .cue .bar { animation: none; }
       }
     </style>
   </head>
@@ -254,7 +271,15 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       </div>
 
       <p class="colophon">二〇二六 · 入场</p>
-      <a class="enter" href="/">进入 <span class="arrow" aria-hidden="true">→</span></a>
+
+      <div class="cue" aria-hidden="true">
+        <span class="arrow">↓</span>
+        <span class="bar"></span>
+      </div>
+
+      <noscript>
+        <a class="enter-noscript" href="/">进入 →</a>
+      </noscript>
     </div>
 
     <script>
@@ -262,6 +287,43 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
 
       const canvas = document.querySelector('[data-lunar]');
       const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // ── 下滑进入主页 ────────────────────────────────────────────────
+      // 页面本身不可滚动（body overflow:hidden），所以这里把「下滑意图」当作进入信号。
+      // 滚轮 / 触摸上滑 / 方向键 都触发；先做一次整屏淡出，再跳转。
+      // 放在 Three.js 初始化之前注册 —— 即使 WebGL 挂了，也依然能进入主页。
+      let leaving = false;
+
+      function enterSite() {
+        if (leaving) return;
+        leaving = true;
+        if (reduced) {
+          location.href = '/';
+          return;
+        }
+        document.documentElement.classList.add('leaving');
+        window.setTimeout(() => { location.href = '/'; }, 470);
+      }
+
+      window.addEventListener('wheel', (e) => {
+        if (e.deltaY > 6) enterSite();
+      }, { passive: true });
+
+      let touchStartY = 0;
+      window.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        // 手指向上滑 = 内容向下滚
+        if (touchStartY - e.touches[0].clientY > 36) enterSite();
+      }, { passive: true });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          enterSite();
+        }
+      });
 
       // 顶点着色器：整屏四边形，位置直接透传
       const vert = /* glsl */ `
