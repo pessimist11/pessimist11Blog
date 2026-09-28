@@ -35,8 +35,11 @@ const FONTS = [
     slug: 'noto-serif-sc',
     kind: 'cjk',
     variants: [
+      // 中文只保留 400 / 700：
+      //  - 中文没有 500 字面，用 500 的中文本来就被浏览器就近匹配到 400
+      //  - 600 与 700 差别很小，去掉 600 可省下约 1/3 的中文字体体积
+      // 所以中文元素请只用 400 或 700（见 global.css 与 works.astro）
       { weight: 400, style: 'normal', src: 'node_modules/@fontsource/noto-serif-sc/files/noto-serif-sc-chinese-simplified-400-normal.woff2' },
-      { weight: 600, style: 'normal', src: 'node_modules/@fontsource/noto-serif-sc/files/noto-serif-sc-chinese-simplified-600-normal.woff2' },
       { weight: 700, style: 'normal', src: 'node_modules/@fontsource/noto-serif-sc/files/noto-serif-sc-chinese-simplified-700-normal.woff2' },
     ],
   },
