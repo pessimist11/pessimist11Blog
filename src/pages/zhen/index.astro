@@ -2,13 +2,28 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 import TravelMap from '@/components/TravelMap.astro';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 const posts = await getCollection('zhen');
 const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 
-// 帧总数 = 相册实际照片数（与各辑「N帧」标签口径一致）
-const galleryModules = import.meta.glob('/src/assets/gallery/**/*.{jpg,jpeg,png,webp,avif}', { eager: true });
-const totalFrames = Object.keys(galleryModules).length;
+// 帧总数 = 相册实际照片数（与各辑「N帧」标签口径一致）。
+//
+// 这里读 optimize-gallery.mjs 生成的清单，而不是 import.meta.glob 图片目录：
+// 那个 glob 会匹配到 76 张原图，Vite 会把匹配集里每一张都发射进 dist/_astro/
+// （约 20 MB，而页面从不引用它们），只为拿一个数字不值得。
+//
+// 用 process.cwd() 拼路径：src/pages/ 下的页面在构建时 import.meta.url
+// 指向编译产物而非源文件，相对路径会算错（BaseLayout 能用纯属目录深度巧合）。
+let totalFrames = 0;
+try {
+  const manifest = JSON.parse(readFileSync(path.resolve('public/gallery/manifest.json'), 'utf8'));
+  totalFrames = Object.keys(manifest).length;
+} catch {
+  console.warn('[zhen] 未找到 public/gallery/manifest.json，先运行 npm run gallery');
+}
+
 const latest = sorted[0];
 
 // 去过的地方（地图用）

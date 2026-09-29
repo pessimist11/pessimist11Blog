@@ -524,6 +524,12 @@ main {
   margin: 40px 0;
 }
 
+/* 正文图已升级为 <picture>（AVIF + JPEG 两档），picture 默认是 inline，
+   显式转成 block 让盒模型与升级前的单张 <img> 完全一致 */
+.article-body picture {
+  display: block;
+}
+
 .article-body img {
   width: 100%;
   margin: 24px 0;

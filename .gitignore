@@ -2,6 +2,7 @@ node_modules/
 dist/
 .astro/
 public/gallery/
+public/images/
 public/fonts/
 .npm-cache/
 .DS_Store
