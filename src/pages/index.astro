@@ -371,26 +371,70 @@ const vert = /* glsl */ `
           return fract((p3.xx + p3.yz) * p3.zy);
         }
 
-        // 浮尘 / 星屑：屏幕空间网格粒子。
-        // 把画面切成格子，每格放一个粒子，查 3×3 邻域避免跨格被裁掉。
-        // 比用 THREE.Points 便宜：不需要额外几何体、相机通道和逐帧 CPU 更新。
-        float dust(vec2 uv, float scale, float t, float speed, float size) {
-          vec2 g = uv * scale;
+        // 月面浮尘：绕月的三维尘埃场。
+        //
+        // 与「全屏撒一层噪点」的区别在三件事，缺一件就会退回成屏幕上的脏点：
+        //   1. 每粒尘有独立深度，按透视放大提亮 → 有远近，不是同一张平面贴纸；
+        //   2. 视线被月面挡住的那一粒直接剔除 → 尘会被月亮遮住，
+        //      这才看得出尘浮在月前、月周，否则就只是糊在屏幕上；
+        //   3. 按「到月盘边缘的倍数」衰减 → 尘只聚在月球周围，屏幕四角是干净的纸。
+        //
+        // 仍然比 THREE.Points 便宜：不需要几何体、额外相机通道和逐帧 CPU 更新。
+        float dust(vec2 p, vec3 ro, float rMoon, float t, float scale, vec2 offset, float speed, float size, float spin) {
+          // 极缓自转。整场绕屏幕中心（＝月心）转，尘看起来是在绕月运行，而不是整块平移
+          float a = t * spin;
+          float cs = cos(a);
+          float sn = sin(a);
+          mat2 toScreen = mat2(cs, -sn, sn, cs); // 网格 → 屏幕
+          mat2 toGrid = mat2(cs, sn, -sn, cs);   // 屏幕 → 网格
+
+          vec2 g = (toGrid * p + offset) * scale;
           vec2 id = floor(g);
           float acc = 0.0;
           for (int y = -1; y <= 1; y++) {
             for (int x = -1; x <= 1; x++) {
               vec2 c = id + vec2(float(x), float(y));
               vec2 h = hash2(c);
-              // 格内位置 + 极缓的漂浮（用正弦往复，避免粒子漂出格子）
+              // 格内位置 + 极缓的漂浮（三角波往复，粒子不会漂出格子）
               vec2 pos = c + 0.5 + (h - 0.5) * 0.72;
               pos.x += tri(t * speed * 0.159 + h.y) * 0.30;
               pos.y += tri(t * speed * 0.124 + h.x + 0.25) * 0.26;
+
+              // 先做最便宜的剔除：绝大多数格子跟这个像素无关，
+              // 后面的开方和求交只留给真正压到像素的少数格子
               float d = length(g - pos);
-              // 明灭闪烁，让粒子不像静态噪点。用三角波代替 sin，省掉循环内的三角函数
+              if (d > size * 2.4) continue;
+
+              // 还原成这粒尘自己的屏幕位置（未旋转），也才有它自己的视线
+              vec2 ps = toScreen * (pos / scale - offset);
+
+              // 只围着月盘：1.0 就是月亮的边缘。
+              // 外缘阈值带一点随机，边界才不会像圆规画出来的圆
+              float edge = length(ps) / rMoon;
+              float near = smoothstep(1.35 + 0.3 * h.x, 1.0, edge);
+              if (near <= 0.002) continue;
+
+              // 贴着月缘的那一圈略微提亮，凑出一层很淡的月晕
+              float rim = smoothstep(0.3, 0.0, abs(edge - 1.0));
+
+              // 独立深度 → 近的更大更亮，远的更小更淡
+              float z = mix(0.25, uCamZ - 1.2, h.y);
+              vec3 rd = normalize(vec3(ps * 0.287, -1.0));
+              float s = (uCamZ - z) / max(-rd.z, 1e-4);
+
+              // 被月面挡住就剔除。这一条是「浮在月周」与「糊在屏幕上」的分界
+              float bb = dot(ro, rd);
+              float hh = bb * bb - (dot(ro, ro) - 1.0);
+              if (hh > 0.0 && s > -bb - sqrt(hh)) continue;
+
+              float persp = clamp(3.0 / s, 0.55, 1.7);
+              float radius = size * (0.6 + 0.7 * h.x) * persp;
+
+              // 明灭闪烁，让尘不像静态噪点。仍用三角波，循环里不引三角函数
               float ph = fract(t * (0.06 + h.y * 0.05) + h.x);
               float tw = 0.55 + 0.45 * (1.0 - abs(ph * 2.0 - 1.0));
-              acc += smoothstep(size, 0.0, d) * tw * (0.3 + 0.7 * h.y);
+              // 中心实、边缘软的小点：尘要像细颗粒，不能糊成一颗颗散景球
+              acc += smoothstep(radius, radius * 0.25, d) * tw * near * persp * (0.92 + 0.35 * rim);
             }
           }
           return acc;
@@ -452,10 +496,14 @@ const vert = /* glsl */ `
           float cl = cloudField(p, uTime);
           col = mix(col, uInk, cl * 0.17);
 
-          // 浮尘：细密一层 + 疏朗一层，叠出景深
-          float d1 = dust(p, 24.0, uTime, 0.22, 0.052);
-          float d2 = dust(p * 0.62 + 7.3, 12.0, uTime, 0.13, 0.085);
-          col = mix(col, uInk, clamp(d1 * 0.15 + d2 * 0.11, 0.0, 0.45));
+          // 月盘在屏幕上的半径：解「视线与单位球相切」得来，随 uCamZ 变化。
+          // 浮尘的疏密以它为基准，所以换视口比例时尘始终贴着月亮。
+          float rMoon = 1.0 / (0.287 * sqrt(max(uCamZ * uCamZ - 1.0, 1e-3)));
+
+          // 浮尘：细密一层 + 疏朗一层，反向极缓自转，叠出景深
+          float d1 = dust(p, ro, rMoon, uTime, 40.0, vec2(0.0), 0.20, 0.044, 0.030);
+          float d2 = dust(p, ro, rMoon, uTime, 18.0, vec2(7.3, 3.1), 0.12, 0.066, -0.018);
+          col = mix(col, uInk, clamp(d1 * 0.22 + d2 * 0.12, 0.0, 0.5));
 
           // 纸纹颗粒，避免大面积平色
           col *= 0.994 + 0.012 * hash(vec3(gl_FragCoord.xy, 3.7));
