@@ -146,7 +146,11 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
     <link rel="canonical" href={canonical} />
     <script type="application/ld+json" set:html={jsonLd} />
     <title>{pageTitle}</title>
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- 站点图标：圆角正方形的处理见 public/ 下各文件；apple-touch-icon 必须是
+         方形不透明（iOS 自己加圆角，且会把透明处填黑） -->
+    <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="alternate" type="application/rss+xml" title="pessimist11" href="/rss.xml" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={ogDescription} />

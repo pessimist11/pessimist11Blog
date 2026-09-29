@@ -301,9 +301,15 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
   <script>
     import * as THREE from 'three';
 
-    const canvas = document.querySelector('[data-lunar]');
-    const cover = document.querySelector('[data-cover]');
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // 月亮封面 —— 必须与 View Transitions 共存。
+    //
+    // Astro 的 ClientRouter 默认**不会**重新执行脚本。从别的页面点回首页时，
+    // DOM 被换成了新的（文字、署名都在），但这段初始化代码不会重跑，
+    // 新 canvas 就没有 WebGL 上下文 —— 表现就是「只见 PESSIMIST11，不见月亮」。
+    //
+    // 所以：初始化包成 boot() 挂到 astro:page-load（首次加载 + 每次换页后都会触发），
+    // 并且重建前先把上一个实例彻底销毁。WebGL 上下文数量有限（通常 16 个），
+    // 只重建不销毁的话，来回切几次就再也画不出来了。
 
 const vert = /* glsl */ `
         void main() {
@@ -459,12 +465,43 @@ const vert = /* glsl */ `
       `;
 
     // 配色跟随站点主题：亮色=纸白淡墨，暗色=墨底素月（直接读全局 token）
+
+    // 配色跟随站点主题：亮色=纸白淡墨，暗色=墨底素月（直接读全局 token）
     function cssColor(name, fallback) {
       const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
       return new THREE.Color(v || fallback);
     }
 
-    function init() {
+    let live = null; // 当前这一个封面实例
+
+    function teardown() {
+      if (!live) return;
+      live.stop();
+      live.io.disconnect();
+      live.themeObserver.disconnect();
+      window.removeEventListener('resize', live.onResize);
+      live.renderer.dispose();
+      live = null;
+    }
+
+    function boot() {
+      const canvas = document.querySelector('[data-lunar]');
+      const cover = document.querySelector('[data-cover]');
+
+      // 不在首页：把可能残留的实例销毁掉
+      if (!canvas || !cover) {
+        teardown();
+        return;
+      }
+
+      // 幂等：同一个 canvas 已经初始化过就直接返回。
+      // 这样 boot() 既能挂事件、也能在首次加载时直接调用，不会重复建渲染器。
+      if (live && live.canvas === canvas) return;
+
+      teardown(); // 换页后 DOM 是新的 canvas，先销毁上一个实例
+
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
       let renderer;
       try {
         renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
@@ -487,7 +524,7 @@ const vert = /* glsl */ `
       const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
       scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
 
-      // 画布尺寸跟随封面容器（不再是整屏 fixed）
+      // 画布尺寸跟随封面容器
       function resize() {
         const w = cover.clientWidth;
         const h = cover.clientHeight;
@@ -527,30 +564,42 @@ const vert = /* glsl */ `
       }
 
       // 封面滚出视口就停渲染 —— 否则用户读文章时 GPU 一直空转
-      new IntersectionObserver(([entry]) => {
+      const io = new IntersectionObserver(([entry]) => {
         if (entry.isIntersecting) start();
         else stop();
-      }, { threshold: 0 }).observe(cover);
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) stop();
-        else start();
-      });
+      }, { threshold: 0 });
+      io.observe(cover);
 
       // 主题切换（点导航上的开关）时刷新配色
-      new MutationObserver(() => {
+      const themeObserver = new MutationObserver(() => {
         uniforms.uPaper.value = cssColor('--bg', '#f3efe8');
         uniforms.uInk.value = cssColor('--text', '#1a1a1a');
         if (reduced) renderer.render(scene, camera);
-      }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      });
+      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+      const onResize = () => resize();
       resize();
-      window.addEventListener('resize', resize, { passive: true });
+      window.addEventListener('resize', onResize, { passive: true });
 
       if (reduced) renderer.render(scene, camera); // 只出一帧，不动
       else start();
+
+      live = { canvas, renderer, start, stop, io, themeObserver, onResize };
     }
 
-    init();
+    // 切到后台就停、回来再继续。挂在模块作用域只注册一次，
+    // 通过 live 间接操作当前实例（放在 boot 里会随换页不断累积监听器）。
+    document.addEventListener('visibilitychange', () => {
+      if (!live) return;
+      if (document.hidden) live.stop();
+      else live.start();
+    });
+
+    // astro:page-load 在「首次加载」和「每次换页后」都会触发。
+    // 但首次加载时它有可能在本模块执行之前就已派发 —— 所以再直接调一次，
+    // boot() 对同一个 canvas 是幂等的，不会重复初始化。
+    document.addEventListener('astro:page-load', boot);
+    boot();
   </script>
 </BaseLayout>
