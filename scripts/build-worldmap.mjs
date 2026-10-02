@@ -14,20 +14,24 @@
 //   3. 隐式 lineto（`M x y x y ...`）＋ 去掉退化环：每个点省一个 L，重复点去掉。
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { feature } from 'topojson-client';
+import { feature, mesh } from 'topojson-client';
 
 const W = 2000;
 const H = 1000;
-// 陆地几何用 1:50m 数据（60,629 点，是 1:110m 的 12 倍），轮廓细节明显更足。
-// 来源：world-atlas@2 的 land-50m.json（Natural Earth 派生，公有领域，与仓库里
-// 原来那份 110m 同源），只保留其中的 land 对象。
-const DATA = path.resolve('scripts/data/land-50m.json');
+// 陆地与国界都用 1:50m 数据（60,629 点，是 1:110m 的 12 倍），轮廓细节明显更足。
+// 来源：world-atlas@2 的 countries-50m.json（Natural Earth 派生，公有领域，与仓库里
+// 原来那份 110m 同源）。它同时含 land 与 countries 两个对象，所以一份文件够用：
+// 陆地填充取 land，国界描边取 countries 的「内部边界」。
+const DATA = path.resolve('scripts/data/countries-50m.json');
 
 // 默认值；可用命令行覆盖以便对比不同激进程度
 const [argTol, argMinSpan, argOut] = process.argv.slice(2);
 const TOLERANCE = argTol !== undefined ? Number(argTol) : 0.6;
 const MIN_SPAN = argMinSpan !== undefined ? Number(argMinSpan) : 2;
 const OUT = path.resolve(argOut ?? 'src/assets/worldmap.svg');
+
+// 国界只是一根发丝细线，不需要海岸线那么高的精度，容差可以放宽
+const BORDER_TOLERANCE = 0.8;
 
 const topo = JSON.parse(await readFile(DATA, 'utf8'));
 // 用 land 而不是 countries：这张图渲染的是「没有国界的陆地剪影」（所有环合并成一个
@@ -238,7 +242,52 @@ function ringsOf(geo) {
   return rings;
 }
 
+/**
+ * 把一批开放折线（国界）加工成一条 stroke 用的 d。
+ * 和陆地不同：描边不需要闭合，所以跨接缝处直接断成独立子路径就行 —— 不用 Z、不用展开，
+ * 也就不会碰上「展开还是保留」那类坑。
+ */
+function buildLineLayer(lines, tolerance) {
+  const stat = { rawPoints: 0, keptPoints: 0, keptLines: 0, droppedLines: 0 };
+  let d = '';
+
+  for (const line of lines) {
+    stat.rawPoints += line.length;
+    const simplified = dedupe(simplify(dedupe(line.map(project)), tolerance));
+    if (simplified.length < 2) {
+      stat.droppedLines++;
+      continue;
+    }
+    let current = [simplified[0]];
+    for (let i = 1; i < simplified.length; i++) {
+      // 跨 180° 的点之间会连出一条横贯全图的线，断开
+      if (Math.abs(simplified[i][0] - simplified[i - 1][0]) > W / 2) {
+        if (current.length > 1) {
+          d += `M${current.map((p) => `${p[0]} ${p[1]}`).join(' ')}`;
+          stat.keptLines++;
+        }
+        current = [simplified[i]];
+      } else {
+        current.push(simplified[i]);
+      }
+    }
+    if (current.length > 1) {
+      d += `M${current.map((p) => `${p[0]} ${p[1]}`).join(' ')}`;
+      stat.keptLines++;
+    }
+    stat.keptPoints += simplified.length;
+  }
+
+  return { d, stat };
+}
+
 const land = buildPolygonLayer(ringsOf(geo), MIN_SPAN);
+// 国界：只要「相邻两国共享的那条边」（a !== b），海岸线已经由 land 图层画了。
+// mesh 返回的每条共享弧只出现一次，不会重复描一遍导致颜色加深。
+const borders = buildLineLayer(
+  mesh(topo, topo.objects.countries, (a, b) => a !== b).coordinates,
+  BORDER_TOLERANCE,
+);
 // 湖泊：Natural Earth 110m（24 个要素：五大湖、贝加尔湖、维多利亚湖等）。
 // 没有这一层的话，这些湖会被 land 图层当成陆地填掉 —— 110m 的 land 只描海岸线，不挖湖。
 // 注意它不含里海（里海在 land 图层里本来就是洞，是对的），也不含青海湖（110m 精度不够）。
@@ -255,12 +304,13 @@ for (let lat = -80; lat <= 80; lat += 10) {
   grid += `M0 ${y}H${W}`;
 }
 
-// 顺序即图层顺序：网格在最下，陆地压在网格上，湖泊再压在陆地上（湖面用页面底色，
-// 看起来就是把陆地挖开），和参考站的做法一致。
+// 顺序即图层顺序：网格在最下，陆地压在网格上，国界压在陆地上，
+// 最后是湖泊（湖面用页面底色，看起来就是把陆地挖开），和参考站的做法一致。
 const svg =
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill-rule="evenodd" aria-hidden="true">\n` +
   `<path class="worldmap-grid" d="${grid}"/>\n` +
   `<path class="worldmap-land" d="${land.d}"/>\n` +
+  `<path class="worldmap-borders" d="${borders.d}"/>\n` +
   `<path class="worldmap-lakes" d="${lakes.d}"/>\n` +
   `</svg>\n`;
 
@@ -272,9 +322,11 @@ console.log(
   `[build-worldmap] 容差 ${TOLERANCE}、最小环 ${MIN_SPAN}/${LAKES_MIN_SPAN}：` +
     `陆地 ${land.stat.keptRings} 环（丢 ${land.stat.droppedRings}，接缝副本 ${land.stat.wrappedCopies}）` +
     ` 点 ${land.stat.rawPoints} → ${land.stat.keptPoints}（抽掉 ${pct(land.stat.keptPoints, land.stat.rawPoints)}）；` +
-    `湖泊 ${lakes.stat.keptRings} 环 点 ${lakes.stat.rawPoints} → ${lakes.stat.keptPoints}`,
+    `湖泊 ${lakes.stat.keptRings} 环 点 ${lakes.stat.rawPoints} → ${lakes.stat.keptPoints}；` +
+    `国界 ${borders.stat.keptLines} 段（容差 ${BORDER_TOLERANCE}）点 ${borders.stat.rawPoints} → ${borders.stat.keptPoints}`,
 );
 console.log(
   `[build-worldmap] 已生成 ${path.relative(process.cwd(), OUT)}（${(svg.length / 1024).toFixed(0)}KB，` +
-    `其中 land ${(land.d.length / 1024).toFixed(0)}KB、lakes ${(lakes.d.length / 1024).toFixed(1)}KB）`,
+    `其中 land ${(land.d.length / 1024).toFixed(0)}KB、borders ${(borders.d.length / 1024).toFixed(1)}KB、` +
+    `lakes ${(lakes.d.length / 1024).toFixed(1)}KB）`,
 );

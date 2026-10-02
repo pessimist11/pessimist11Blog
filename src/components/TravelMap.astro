@@ -409,6 +409,15 @@ const viewBox = '1360 160 480 240';
     /* 缩放靠改 viewBox，描边会跟着变粗；non-scaling-stroke 让线宽固定为屏幕像素 */
     vector-effect: non-scaling-stroke;
   }
+  /* 国界：一根很淡的发丝线。用 --text 混一点透明，亮色下是淡墨、暗色下是浅灰，
+     两种主题都成立；non-scaling-stroke 保证放大到 14× 也不会变粗成一坨。 */
+  .tm-svg :global(.worldmap-borders) {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 0.35;
+    opacity: 0.17;
+    vector-effect: non-scaling-stroke;
+  }
   /* 湖面用页面底色填，看起来就是把陆地挖开；深浅色主题都成立 */
   .tm-svg :global(.worldmap-lakes) {
     fill: var(--bg);
