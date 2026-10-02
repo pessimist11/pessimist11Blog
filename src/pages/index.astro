@@ -528,6 +528,9 @@ const vert = /* glsl */ `
       live.io.disconnect();
       live.themeObserver.disconnect();
       window.removeEventListener('resize', live.onResize);
+      // 标记「这块 canvas 是我们主动销毁的」。webglcontextlost 是异步派发的，
+      // 用局部标志会被重置掉，打在元素上才可靠。
+      live.canvas.__tmDisposed = true;
       // dispose() 只释放资源，**不会**归还 WebGL 上下文；必须 forceContextLoss()。
       // 不然来回切页时上下文会一路累积（浏览器通常只给 16 个），
       // 到后来 new WebGLRenderer 直接失败 —— 表现就是「页面好好的，月亮没了」。
@@ -566,9 +569,16 @@ const vert = /* glsl */ `
       // 封面就剩署名和题句、看着像「月亮不见了」，所以这里退回 CSS 画的那颗月亮。
       canvas.addEventListener('webglcontextlost', (e) => {
         e.preventDefault();
+        // 切页时 teardown() 会主动 forceContextLoss()，那不是真的出故障；
+        // 这里若不分青红皂白加上 no-webgl，会一直留在 <html> 上（换页不重置 html），
+        // 结果就是「点回首页后月亮被 CSS 藏起来，刷新才好」。
+        if (canvas.__tmDisposed) return;
         document.documentElement.classList.add('no-webgl');
         stop();
       });
+
+      // 上一次可能留下了 no-webgl（兜底状态）：既然这次渲染器建成功了，就清掉它
+      document.documentElement.classList.remove('no-webgl');
 
       const uniforms = {
         uRes: { value: new THREE.Vector2(1, 1) },
