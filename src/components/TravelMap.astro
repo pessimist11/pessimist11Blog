@@ -150,7 +150,7 @@ const viewBox = '1360 160 480 240';
         const show = px >= -4 && px <= 104 && py >= -4 && py <= 104;
         pin.el.style.display = show ? '' : 'none';
         if (!show) {
-          pin.label.style.visibility = 'hidden';
+          pin.el.classList.add('is-label-hidden');
           continue;
         }
         pin.el.style.left = px.toFixed(2) + '%';
@@ -172,15 +172,24 @@ const viewBox = '1360 160 480 240';
 
     function updateLabels() {
       const visible = pins.filter(p => p.el.style.display !== 'none');
-      // 标签碰撞检测
+      // 标签碰撞检测：先试默认位置（图钉下方），被压住就翻到上方，两边都压住才藏起来。
+      // 藏起来的标签鼠标移上去／键盘聚焦时会露出来（见样式），所以每个地点始终够得着名字。
       const placed = [];
       for (const pin of visible) {
-        const rect = pin.label.getBoundingClientRect();
-        const hit = placed.some(r =>
-          !(rect.right < r.left - 4 || rect.left > r.right + 4 || rect.bottom < r.top - 2 || rect.top > r.bottom + 2)
-        );
-        pin.label.style.visibility = hit ? 'hidden' : 'visible';
-        if (!hit) placed.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+        let ok = false;
+        for (const above of [false, true]) {
+          pin.el.classList.toggle('is-label-above', above);
+          const rect = pin.label.getBoundingClientRect();
+          const hit = placed.some(r =>
+            !(rect.right < r.left - 4 || rect.left > r.right + 4 || rect.bottom < r.top - 2 || rect.top > r.bottom + 2)
+          );
+          if (!hit) {
+            placed.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+            ok = true;
+            break;
+          }
+        }
+        pin.el.classList.toggle('is-label-hidden', !ok);
       }
     }
 
@@ -523,6 +532,21 @@ const viewBox = '1360 160 480 240';
     color: var(--text);
     white-space: nowrap;
     text-shadow: 0 1px 2px var(--bg);
+  }
+  /* 被挤到图钉上方的标签 */
+  .tm-pin.is-label-above .tm-label {
+    order: -1;
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
+  /* 碰撞检测判定会互相压住的标签先藏起来，指到／聚焦时再露出来 —— 不这样的话
+     像青岛这种和「泰安＆淄博」挨得近的地点，名字就永远看不到了 */
+  .tm-pin.is-label-hidden .tm-label {
+    opacity: 0;
+  }
+  .tm-pin.is-label-hidden:hover .tm-label,
+  .tm-pin.is-label-hidden:focus-visible .tm-label {
+    opacity: 1;
   }
   .tm-hint {
     position: absolute;
