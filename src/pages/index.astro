@@ -528,6 +528,10 @@ const vert = /* glsl */ `
       live.io.disconnect();
       live.themeObserver.disconnect();
       window.removeEventListener('resize', live.onResize);
+      // dispose() 只释放资源，**不会**归还 WebGL 上下文；必须 forceContextLoss()。
+      // 不然来回切页时上下文会一路累积（浏览器通常只给 16 个），
+      // 到后来 new WebGLRenderer 直接失败 —— 表现就是「页面好好的，月亮没了」。
+      live.renderer.forceContextLoss();
       live.renderer.dispose();
       live = null;
     }
@@ -557,6 +561,14 @@ const vert = /* glsl */ `
         document.documentElement.classList.add('no-webgl');
         return;
       }
+
+      // 显存不足 / 驱动重置 / 切页太频繁都可能丢上下文。丢了之后画面不会自己回来，
+      // 封面就剩署名和题句、看着像「月亮不见了」，所以这里退回 CSS 画的那颗月亮。
+      canvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();
+        document.documentElement.classList.add('no-webgl');
+        stop();
+      });
 
       const uniforms = {
         uRes: { value: new THREE.Vector2(1, 1) },
