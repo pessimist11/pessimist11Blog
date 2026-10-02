@@ -18,11 +18,14 @@ import { feature } from 'topojson-client';
 
 const W = 2000;
 const H = 1000;
-const DATA = path.resolve('scripts/data/world-110m.json');
+// 陆地几何用 1:50m 数据（60,629 点，是 1:110m 的 12 倍），轮廓细节明显更足。
+// 来源：world-atlas@2 的 land-50m.json（Natural Earth 派生，公有领域，与仓库里
+// 原来那份 110m 同源），只保留其中的 land 对象。
+const DATA = path.resolve('scripts/data/land-50m.json');
 
 // 默认值；可用命令行覆盖以便对比不同激进程度
 const [argTol, argMinSpan, argOut] = process.argv.slice(2);
-const TOLERANCE = argTol !== undefined ? Number(argTol) : 0.8;
+const TOLERANCE = argTol !== undefined ? Number(argTol) : 0.6;
 const MIN_SPAN = argMinSpan !== undefined ? Number(argMinSpan) : 2;
 const OUT = path.resolve(argOut ?? 'src/assets/worldmap.svg');
 
@@ -119,29 +122,41 @@ function dedupe(points) {
 }
 
 /**
- * 把跨 180° 的环「展开」成连续坐标。
+ * 把跨 180° 的环展开成连续坐标。
  *
- * 非洲—欧亚大陆在 land 图层里是一个环，它经楚科奇两次越过 180°（数据里就是
- * lng = -180.00 接 +179.99）。如果按「水平差超过半幅就断开」拆成几段开放折线，
- * 每段再用 Z 闭合，闭合边就会在图上拉出一条横贯全图的斜线 —— 实测那是一条从
- * 楚科奇斜切回非洲的假陆地。正确做法是不拆，而是跨界时给后续点整体平移一圈，
- * 让环保持连续，Z 只需闭合很短的一条边。
+ * 但「跨接缝的跳变」有两种，必须分开处理，否则一定出错：
+ *  (a) 真的绕过 180°（两端不在图幅边缘）→ 必须展开，否则 Z 闭合会拉出一条横贯全图的
+ *      斜线（110m 的楚科奇就这样画出过一块从楚科奇斜切回非洲的假陆地）；
+ *  (b) 数据本来就在图幅边缘切断（两端都正好落在 x=0/W，或整段贴在上下边界上）→
+ *      那条边本身就是沿图幅边界的闭合边，要原样保留。展开反而会把整块大陆推出画布：
+ *      50m 数据里亚欧、非洲、北美都是这种切断环，展开后 x 会漂到 −1097，整块大陆消失。
  */
 function unroll(points) {
   const out = [points[0]];
   let offset = 0;
   for (let i = 1; i < points.length; i++) {
+    const prev = out[out.length - 1];
+    const y = points[i][1];
     let x = points[i][0] + offset;
-    let guard = 0;
-    while (x - out[out.length - 1][0] > W / 2 && guard++ < 4) {
-      offset -= W;
-      x -= W;
+
+    const atVerticalEdge = (v) => Math.min(Math.abs(v), Math.abs(v - W)) <= 1;
+    const isSeamJump = Math.abs(x - prev[0]) > W / 2;
+    const isBorderClosure =
+      (atVerticalEdge(prev[0]) && atVerticalEdge(x)) ||
+      (Math.abs(y - prev[1]) <= 1 && (y <= 1 || y >= H - 1));
+
+    if (isSeamJump && !isBorderClosure) {
+      let guard = 0;
+      while (x - prev[0] > W / 2 && guard++ < 4) {
+        offset -= W;
+        x -= W;
+      }
+      while (prev[0] - x > W / 2 && guard++ < 4) {
+        offset += W;
+        x += W;
+      }
     }
-    while (out[out.length - 1][0] - x > W / 2 && guard++ < 4) {
-      offset += W;
-      x += W;
-    }
-    out.push([x, points[i][1]]);
+    out.push([x, y]);
   }
   return out;
 }
