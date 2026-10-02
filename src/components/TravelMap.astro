@@ -418,6 +418,14 @@ const viewBox = '1360 160 480 240';
     opacity: 0.17;
     vector-effect: non-scaling-stroke;
   }
+  /* 河流：比国界更淡更细一档，只作为陆地上的纹理，不抢图钉 */
+  .tm-svg :global(.worldmap-rivers) {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 0.3;
+    opacity: 0.13;
+    vector-effect: non-scaling-stroke;
+  }
   /* 湖面用页面底色填，看起来就是把陆地挖开；深浅色主题都成立 */
   .tm-svg :global(.worldmap-lakes) {
     fill: var(--bg);

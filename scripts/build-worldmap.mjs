@@ -30,23 +30,27 @@ const TOLERANCE = argTol !== undefined ? Number(argTol) : 0.6;
 const MIN_SPAN = argMinSpan !== undefined ? Number(argMinSpan) : 2;
 const OUT = path.resolve(argOut ?? 'src/assets/worldmap.svg');
 
-// 国界只是一根发丝细线，不需要海岸线那么高的精度，容差可以放宽
-const BORDER_TOLERANCE = 0.8;
+// 国界和河流都只是一根发丝细线，不需要海岸线那么高的精度，容差可以放宽
+const LINE_TOLERANCE = 0.8;
+
+// 湖泊与河流数据（Natural Earth 1:50m，公有领域），只保留几何、去掉几十个属性字段。
+// 下载自：
+//   https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_lakes.geojson
+//   https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_rivers_lake_centerlines.geojson
+// 河流另外按 scalerank ≤ 4 筛掉了小支流：全量 462 条会多花一倍体积，而且在 1000px 宽的图上只是噪点
+const LAKES = path.resolve('scripts/data/lakes-50m.json');
+const RIVERS = path.resolve('scripts/data/rivers-50m.json');
+// 湖的阈值比岛更严（3 单位 ≈ 默认缩放下 6px）：比这更小的湖在浅色底上就是一个个白点，
+// 看着像纸的瑕疵而不是湖。50m 湖泊共 465 环，卡在 3 会留下 285 个还算认得出的湖。
+const LAKES_MIN_SPAN = 3;
+// 湖的形状简单，容差可以比海岸线松
+const LAKES_TOLERANCE = 0.8;
 
 const topo = JSON.parse(await readFile(DATA, 'utf8'));
-// 用 land 而不是 countries：这张图渲染的是「没有国界的陆地剪影」（所有环合并成一个
-// path 同色填充，国界本来就看不见）。countries 版会把每一条国界都写进 d，两倍的点数，
-// 而且两条相邻国界被各自独立抽稀后会互相错开 —— 配合默认的 fill-rule="evenodd"
-// 错开处会互相抵消，在大陆内部裂出一条条白缝（实测容差 2.0 时欧洲满屏白线）。
-// land 只有海岸线，没有共享边界，既省一半的点，也根本不会裂。
+// 陆地填充取 land 对象：这张图渲染的是「整块陆地剪影」（所有环合并成一个 path 同色填充），
+// 用 countries 会把每一条国界也写进填充路径，两倍的点数。国界另外用 mesh 单独描边（见下）。
 const OBJECT = 'land';
 const geo = feature(topo, topo.objects[OBJECT]);
-
-// 湖泊数据（Natural Earth 110m，公有领域）。下载自：
-// https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_lakes.geojson
-const LAKES = path.resolve('scripts/data/ne_110m_lakes.geojson');
-// 湖比岛更容易「小到看不见却认得出来」，阈值比陆地的 2 再放宽一点
-const LAKES_MIN_SPAN = Math.min(MIN_SPAN, 1.5);
 
 const project = ([lng, lat]) => [
   Math.round(((lng + 180) / 360) * W),
@@ -191,14 +195,14 @@ function ringToPath(points, shiftX = 0) {
  * 把一批多边形环加工成一条 path 的 d。
  * 陆地与湖泊共用这条流水线：投影取整 → 展开跨接缝环 → Douglas-Peucker 抽稀 → 隐式 lineto。
  */
-function buildPolygonLayer(rings, minSpan) {
+function buildPolygonLayer(rings, minSpan, tolerance) {
   const stat = { rawPoints: 0, keptPoints: 0, keptRings: 0, droppedRings: 0, wrappedCopies: 0 };
   let d = '';
 
   for (const ring of rings) {
     stat.rawPoints += ring.length;
     const unrolled = unroll(dedupe(ring.map(project)));
-    const simplified = dedupe(simplify(unrolled, TOLERANCE));
+    const simplified = dedupe(simplify(unrolled, tolerance));
     // 少于 3 个点围不成面；外接矩形太小的环在显示尺寸下不足 1px
     if (simplified.length < 3 || ringSpan(simplified) < minSpan) {
       stat.droppedRings++;
@@ -243,7 +247,21 @@ function ringsOf(geo) {
 }
 
 /**
- * 把一批开放折线（国界）加工成一条 stroke 用的 d。
+ * 取出 GeoJSON 里所有的开放折线（河流是 LineString / MultiLineString）
+ */
+function linesOf(geo) {
+  const lines = [];
+  for (const f of geo.features) {
+    const g = f.geometry;
+    if (!g) continue;
+    if (g.type === 'LineString') lines.push(g.coordinates);
+    else if (g.type === 'MultiLineString') for (const line of g.coordinates) lines.push(line);
+  }
+  return lines;
+}
+
+/**
+ * 把一批开放折线（国界、河流）加工成一条 stroke 用的 d。
  * 和陆地不同：描边不需要闭合，所以跨接缝处直接断成独立子路径就行 —— 不用 Z、不用展开，
  * 也就不会碰上「展开还是保留」那类坑。
  */
@@ -281,17 +299,23 @@ function buildLineLayer(lines, tolerance) {
   return { d, stat };
 }
 
-const land = buildPolygonLayer(ringsOf(geo), MIN_SPAN);
+const land = buildPolygonLayer(ringsOf(geo), MIN_SPAN, TOLERANCE);
 // 国界：只要「相邻两国共享的那条边」（a !== b），海岸线已经由 land 图层画了。
 // mesh 返回的每条共享弧只出现一次，不会重复描一遍导致颜色加深。
 const borders = buildLineLayer(
   mesh(topo, topo.objects.countries, (a, b) => a !== b).coordinates,
-  BORDER_TOLERANCE,
+  LINE_TOLERANCE,
 );
 // 湖泊：Natural Earth 110m（24 个要素：五大湖、贝加尔湖、维多利亚湖等）。
 // 没有这一层的话，这些湖会被 land 图层当成陆地填掉 —— 110m 的 land 只描海岸线，不挖湖。
 // 注意它不含里海（里海在 land 图层里本来就是洞，是对的），也不含青海湖（110m 精度不够）。
-const lakes = buildPolygonLayer(ringsOf(JSON.parse(await readFile(LAKES, 'utf8'))), LAKES_MIN_SPAN);
+const lakes = buildPolygonLayer(
+  ringsOf(JSON.parse(await readFile(LAKES, 'utf8'))),
+  LAKES_MIN_SPAN,
+  LAKES_TOLERANCE,
+);
+// 河流：同样只描边，且已按 scalerank 筛过，只留主要河流
+const rivers = buildLineLayer(linesOf(JSON.parse(await readFile(RIVERS, 'utf8'))), LINE_TOLERANCE);
 
 // 经纬网格（10° 间隔）：经线 + 纬线
 let grid = '';
@@ -312,6 +336,7 @@ const svg =
   `<path class="worldmap-land" d="${land.d}"/>\n` +
   `<path class="worldmap-borders" d="${borders.d}"/>\n` +
   `<path class="worldmap-lakes" d="${lakes.d}"/>\n` +
+  `<path class="worldmap-rivers" d="${rivers.d}"/>\n` +
   `</svg>\n`;
 
 await mkdir(path.dirname(OUT), { recursive: true });
@@ -323,10 +348,10 @@ console.log(
     `陆地 ${land.stat.keptRings} 环（丢 ${land.stat.droppedRings}，接缝副本 ${land.stat.wrappedCopies}）` +
     ` 点 ${land.stat.rawPoints} → ${land.stat.keptPoints}（抽掉 ${pct(land.stat.keptPoints, land.stat.rawPoints)}）；` +
     `湖泊 ${lakes.stat.keptRings} 环 点 ${lakes.stat.rawPoints} → ${lakes.stat.keptPoints}；` +
-    `国界 ${borders.stat.keptLines} 段（容差 ${BORDER_TOLERANCE}）点 ${borders.stat.rawPoints} → ${borders.stat.keptPoints}`,
+    `国界 ${borders.stat.keptLines} 段、河流 ${rivers.stat.keptLines} 段（容差 ${LINE_TOLERANCE}）`,
 );
 console.log(
   `[build-worldmap] 已生成 ${path.relative(process.cwd(), OUT)}（${(svg.length / 1024).toFixed(0)}KB，` +
     `其中 land ${(land.d.length / 1024).toFixed(0)}KB、borders ${(borders.d.length / 1024).toFixed(1)}KB、` +
-    `lakes ${(lakes.d.length / 1024).toFixed(1)}KB）`,
+    `lakes ${(lakes.d.length / 1024).toFixed(1)}KB、rivers ${(rivers.d.length / 1024).toFixed(1)}KB）`,
 );
