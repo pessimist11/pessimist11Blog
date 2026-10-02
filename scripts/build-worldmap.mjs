@@ -22,7 +22,7 @@ const H = 1000;
 // 来源：world-atlas@2 的 countries-50m.json（Natural Earth 派生，公有领域，与仓库里
 // 原来那份 110m 同源）。它同时含 land 与 countries 两个对象，所以一份文件够用：
 // 陆地填充取 land，国界描边取 countries 的「内部边界」。
-const DATA = path.resolve('scripts/data/countries-50m.json');
+const DATA = path.resolve('scripts/data/countries-10m.json');
 
 // 默认值；可用命令行覆盖以便对比不同激进程度
 const [argTol, argMinSpan, argOut] = process.argv.slice(2);
@@ -52,9 +52,12 @@ const topo = JSON.parse(await readFile(DATA, 'utf8'));
 const OBJECT = 'land';
 const geo = feature(topo, topo.objects[OBJECT]);
 
+// 保留 1 位小数（0.1 单位）。最大缩放下 1 单位 ≈ 21 CSS px，取整等于把顶点吸附到
+// 21px 的格子上 —— 数据给得再多也还是台阶感；0.1 单位 ≈ 2px，肉眼就顺了。
+// 用 Number(toFixed(1)) 而不是字符串，整数坐标不会被写成 "1234.0"。
 const project = ([lng, lat]) => [
-  Math.round(((lng + 180) / 360) * W),
-  Math.round(((90 - lat) / 180) * H),
+  Number((((lng + 180) / 360) * W).toFixed(1)),
+  Number((((90 - lat) / 180) * H).toFixed(1)),
 ];
 
 /** Douglas-Peucker：用显式栈代替递归，避免上千点的环把调用栈压爆 */
