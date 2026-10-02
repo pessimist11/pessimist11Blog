@@ -30,7 +30,24 @@ const pins = places
     sy: ((90 - p.lat) / 180) * H,
   }));
 
-// 初始视野：固定为大致“中国”范围（含周边，2:1 不变形），不做自动适配
+// 海洋名称：和陆地一样按等距圆柱投影算坐标，但交给页面上的元素定位，不写进 SVG ——
+// build-fonts.mjs 只扫描 src 下的文本文件，.svg 不在扫描范围内，写进去这些字会缺字形变豆腐块。
+// 坐标要落在「会出现的视野里」才有意义：默认视野只框住西太平洋，所以只有太平洋会露出来，
+// 其余三个在往西/往南/往北拖的时候才出现。
+const OCEANS = [
+  { name: '太平洋', lng: 142, lat: 24 },
+  { name: '大西洋', lng: -35, lat: 22 },
+  { name: '印度洋', lng: 78, lat: -25 },
+  { name: '北冰洋', lng: 40, lat: 80 },
+];
+const oceans = OCEANS.map(o => ({
+  ...o,
+  sx: ((o.lng + 180) / 360) * W,
+  sy: ((90 - o.lat) / 180) * H,
+}));
+
+// 初始视野：以中国为中心、宽度固定。高度不写死 —— 由容器比例在运行时算（见组件脚本），
+// 否则窗口比例和容器对不上时 SVG 会等比留白。
 const viewBox = '1360 160 480 240';
 ---
 
@@ -52,6 +69,18 @@ const viewBox = '1360 160 480 240';
       ))}
     </div>
     <div class="tm-svg" set:html={worldmapSvg}></div>
+    <div class="tm-oceans" aria-hidden="true">
+      {oceans.map(o => (
+        <span class="tm-ocean" data-svgx={o.sx} data-svgy={o.sy}>{o.name}</span>
+      ))}
+    </div>
+  </div>
+  <div class="tm-tools" role="group" aria-label="地图缩放">
+    <button type="button" class="tm-tool" data-map="in" aria-label="放大">＋</button>
+    <button type="button" class="tm-tool" data-map="out" aria-label="缩小">－</button>
+    <button type="button" class="tm-tool" data-map="reset" aria-label="恢复默认视野">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" /></svg>
+    </button>
   </div>
   <div class="tm-hint" role="status">按住 Ctrl / ⌘ 滚动缩放 · 双击放大 · 拖拽平移</div>
 </figure>
@@ -71,16 +100,44 @@ const viewBox = '1360 160 480 240';
         frames: parseInt(el.dataset.frames || '0', 10),
       }))
       .sort((a, b) => b.frames - a.frames);
+    const oceans = [...figure.querySelectorAll('.tm-ocean')].map(el => ({
+      el,
+      sx: parseFloat(el.dataset.svgx || '0'),
+      sy: parseFloat(el.dataset.svgy || '0'),
+    }));
+    const toolIn = figure.querySelector('[data-map="in"]');
+    const toolOut = figure.querySelector('[data-map="out"]');
 
-    const baseView = (figure.dataset.viewbox || '0 0 2000 1000').split(' ').map(Number);
     const WORLD_W = 2000;
     const WORLD_H = 1000;
+    // data-viewbox 只用它的中心和宽度；高度交给容器比例决定
+    const BASE = (figure.dataset.viewbox || '1360 160 480 240').split(' ').map(Number);
+    const BASE_W = BASE[2] || 480;
+    const BASE_CENTER = { x: BASE[0] + BASE_W / 2, y: BASE[1] + (BASE[3] || BASE_W / 2) / 2 };
+
+    // 默认视野的高度跟着容器比例走。窗口比例与容器不一致时 SVG 会等比留白：
+    // 2:1 的窗口塞进 2.35:1 的桌面容器，左右各空约 80px；塞进更方的移动端容器，上下空得更多。
+    function baseViewFromBox() {
+      const rect = figure.getBoundingClientRect();
+      const box = rect.height > 0 ? rect.width / rect.height : 2;
+      const h = BASE_W / clamp(box || 2, 0.9, 3.4);
+      return [BASE_CENTER.x - BASE_W / 2, BASE_CENTER.y - h / 2, BASE_W, h];
+    }
+
+    let baseView = baseViewFromBox();
+    let moved = false; // 用户自己缩放过：换视口时不要把他的视野重置掉
     let vb = [...baseView];
-    const minZoomW = baseView[2] / 14;
-    const aspect = baseView[3] / baseView[2];
+    const minZoomW = BASE_W / 14;
+    let aspect = baseView[3] / baseView[2];
 
     function clamp(v, lo, hi) {
       return Math.min(hi, Math.max(lo, v));
+    }
+
+    // 到底了就把对应按钮置灰，省得用户对着没反应的按钮点
+    function updateTools() {
+      if (toolIn) toolIn.disabled = vb[2] <= minZoomW * 1.02;
+      if (toolOut) toolOut.disabled = vb[2] >= WORLD_W * 0.999;
     }
 
     let labelsTimer = null;
@@ -99,6 +156,18 @@ const viewBox = '1360 160 480 240';
         pin.el.style.left = px.toFixed(2) + '%';
         pin.el.style.top = py.toFixed(2) + '%';
       }
+      // 海洋名称跟着地图走；留一点边距，别让字半个挂在盒子外
+      for (const ocean of oceans) {
+        const px = ((ocean.sx - vb[0]) / vb[2]) * 100;
+        const py = ((ocean.sy - vb[1]) / vb[3]) * 100;
+        const show = px >= 2 && px <= 98 && py >= 2 && py <= 98;
+        ocean.el.style.display = show ? '' : 'none';
+        if (show) {
+          ocean.el.style.left = px.toFixed(2) + '%';
+          ocean.el.style.top = py.toFixed(2) + '%';
+        }
+      }
+      updateTools();
     }
 
     function updateLabels() {
@@ -135,6 +204,7 @@ const viewBox = '1360 160 480 240';
     }
 
     function zoomAt(clientX, clientY, factor) {
+      moved = true;
       const rect = canvas.getBoundingClientRect();
       const px = clientX - rect.left;
       const py = clientY - rect.top;
@@ -170,9 +240,28 @@ const viewBox = '1360 160 480 240';
     figure.addEventListener('dblclick', (e) => {
       if (vb[2] <= minZoomW * 1.05) {
         vb = [...baseView];
+        moved = false;
         layout();
       } else {
         zoomAt(e.clientX, e.clientY, 2);
+      }
+    });
+
+    // 右下角的 ＋ / － / ↺：滚轮缩放必须按住 Ctrl 才生效，光靠它太不好发现
+    figure.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-map]');
+      if (!btn) return;
+      const rect = canvas.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      const midY = rect.top + rect.height / 2;
+      if (btn.dataset.map === 'in') zoomAt(midX, midY, 1.6);
+      else if (btn.dataset.map === 'out') zoomAt(midX, midY, 1 / 1.6);
+      else {
+        baseView = baseViewFromBox();
+        aspect = baseView[3] / baseView[2];
+        vb = [...baseView];
+        moved = false;
+        layout();
       }
     });
 
@@ -206,7 +295,10 @@ const viewBox = '1360 160 480 240';
       } else {
         const dx = e.clientX - prev.x;
         const dy = e.clientY - prev.y;
-        if (Math.hypot(dx, dy) > 4) dragged = true;
+        if (Math.hypot(dx, dy) > 4) {
+          dragged = true;
+          moved = true;
+        }
         vb[0] -= (dx / rect.width) * vb[2];
         vb[1] -= (dy / rect.height) * vb[3];
         clampViewBox();
@@ -236,7 +328,21 @@ const viewBox = '1360 160 480 240';
       }
     });
 
-    window.addEventListener('resize', layout);
+    // 换视口：重算默认视野比例；用户没手动缩放过就跟着复位，缩放过则只修高度
+    function onResize() {
+      baseView = baseViewFromBox();
+      aspect = baseView[3] / baseView[2];
+      if (!moved) vb = [...baseView];
+      else {
+        vb[3] = vb[2] * aspect;
+        clampViewBox();
+      }
+      layout();
+    }
+    // ClientRouter 换页后本脚本会再跑一遍，旧监听器先摘掉，别让它们越积越多
+    if (window.__tmResize) window.removeEventListener('resize', window.__tmResize);
+    window.__tmResize = onResize;
+    window.addEventListener('resize', onResize, { passive: true });
     layout();
   }
 </script>
@@ -291,6 +397,78 @@ const viewBox = '1360 160 480 240';
     stroke: var(--border-strong);
     stroke-width: 0.6;
     opacity: 0.45;
+    /* 缩放靠改 viewBox，描边会跟着变粗；non-scaling-stroke 让线宽固定为屏幕像素 */
+    vector-effect: non-scaling-stroke;
+  }
+  /* 湖面用页面底色填，看起来就是把陆地挖开；深浅色主题都成立 */
+  .tm-svg :global(.worldmap-lakes) {
+    fill: var(--bg);
+    stroke: var(--border-strong);
+    stroke-width: 0.4;
+    opacity: 0.9;
+    vector-effect: non-scaling-stroke;
+  }
+  /* 海洋名称：跟着地图平移缩放，不可点 */
+  .tm-oceans {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .tm-ocean {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    text-indent: 0.35em;
+    color: var(--text-faint);
+    opacity: 0.8;
+    white-space: nowrap;
+  }
+  /* 缩放按钮 */
+  .tm-tools {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .tm-tool {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+  .tm-tool:hover:not(:disabled) {
+    color: var(--text);
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+  }
+  .tm-tool:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+  .tm-tool svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .tm-pin {
     position: absolute;
