@@ -127,7 +127,9 @@ const viewBox = '1360 160 480 240';
     let baseView = baseViewFromBox();
     let moved = false; // 用户自己缩放过：换视口时不要把他的视野重置掉
     let vb = [...baseView];
-    const minZoomW = BASE_W / 14;
+    // 最大缩放 10×（原为 14×）：这张图是 1:50m 数据，14× 相当于把 1:50M 的图放到约 1:2M 看，
+    // 海岸线就只剩一条条直线段了。10× 仍在「放大细看」的范围里，但棱角感明显收敛。
+    const minZoomW = BASE_W / 10;
     let aspect = baseView[3] / baseView[2];
 
     function clamp(v, lo, hi) {

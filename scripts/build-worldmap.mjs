@@ -26,7 +26,7 @@ const DATA = path.resolve('scripts/data/countries-50m.json');
 
 // 默认值；可用命令行覆盖以便对比不同激进程度
 const [argTol, argMinSpan, argOut] = process.argv.slice(2);
-const TOLERANCE = argTol !== undefined ? Number(argTol) : 0.6;
+const TOLERANCE = argTol !== undefined ? Number(argTol) : 0.3;
 const MIN_SPAN = argMinSpan !== undefined ? Number(argMinSpan) : 2;
 const OUT = path.resolve(argOut ?? 'src/assets/worldmap.svg');
 
