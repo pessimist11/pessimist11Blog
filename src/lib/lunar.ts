@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import albedoUrl from '../assets/moon/lroc-albedo.webp?url';
 import heightUrl from '../assets/moon/lola-height.jpg?url';
 
+const MOON_ROTATION_SECONDS = 180;
+
 // 固定种子让月海、环形山和浮尘在切页后保持一致。
 function randomSource(seed: number) {
   return () => {
@@ -336,6 +338,8 @@ function boot() {
   const moonGeometry = new THREE.SphereGeometry(1, 64, 48);
   const moonMaterial = new THREE.ShaderMaterial({ uniforms, vertexShader: moonVertex, fragmentShader: moonFragment, transparent: true });
   const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+  // 先倾斜转轴，再绕月球自身的轴旋转；表面粒子共享这个矩阵。
+  moon.rotation.order = 'ZYX';
   moon.rotation.z = 0.08;
   moon.renderOrder = 0;
   scene.add(moon);
@@ -355,7 +359,7 @@ function boot() {
   veil.renderOrder = 2;
   scene.add(veil);
 
-  let disposed = false, lost = false, raf = 0, last = 0, elapsed = 0;
+  let disposed = false, lost = false, raf = 0, last = 0, elapsed = 0, spin = 0;
   let progress = 0, targetProgress = 0, mapsLoaded = 0;
   const pointer = new THREE.Vector2(), targetPointer = new THREE.Vector2();
   const loadedTextures: THREE.Texture[] = [];
@@ -365,7 +369,7 @@ function boot() {
 
   function render() {
     uniforms.uTime.value = elapsed;
-    moon.rotation.y = -Math.PI / 2 + 0.10 - elapsed * 0.003;
+    moon.rotation.y = -Math.PI / 2 + 0.10 - spin;
     moon.updateMatrixWorld();
     uniforms.uMoonRotation.value.setFromMatrix4(moon.matrixWorld);
     const phase = 0.48 + Math.sin(elapsed * 0.035) * 0.10 + progress * 0.45;
@@ -387,9 +391,14 @@ function boot() {
     last = 0;
   }
   function frame(now: number) {
-    if (last) elapsed += Math.min((now - last) / 1000, 0.1);
+    const delta = last ? Math.max(0, (now - last) / 1000) : 0;
     last = now;
+    elapsed += delta;
     progress += (targetProgress - progress) * 0.12;
+    // 用实际帧间隔保持自转速度一致，消散时渐停，避免云带跟着月球转动。
+    // stop() 会重置上一帧时间，恢复可见或关闭减少动态效果时不会突然跳转。
+    const rotationSpeed = 1 - smooth(0.02, 0.18, progress);
+    spin = (spin + delta * Math.PI * 2 / MOON_ROTATION_SECONDS * rotationSpeed) % (Math.PI * 2);
     render();
     raf = requestAnimationFrame(frame);
   }
