@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import ListDate from '@/components/ListDate.astro';
 import { getCollection } from 'astro:content';
 
 const posts = await getCollection('fu');
@@ -18,7 +19,7 @@ const sorted = posts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.ge
         <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/fu/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
             <div class="magazine-date">
-              {post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
+              <ListDate date={post.data.pubDate} />
               {post.data.brand && <><br />{post.data.brand}</>}
             </div>
             <div class="magazine-content">

@@ -9,6 +9,8 @@
   --text-faint: #b0b0b0;
   --border: #ebebeb;
   --border-strong: #d4d4d4;
+  --list-divider: #d4cabe;
+  --list-text-muted: #726b62;
   --accent: #1a1a1a;
   --accent-hover: #555555;
   --font-body: 'EB Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
@@ -29,6 +31,8 @@
   --text-faint: #666666;
   --border: #2a2a2a;
   --border-strong: #404040;
+  --list-divider: #3d3933;
+  --list-text-muted: #aaa296;
   --accent: #e8e8e8;
   --accent-hover: #aaaaaa;
 }
@@ -190,6 +194,12 @@ main {
   padding: 100px 28px;
 }
 
+/* 署名只在首页这一处随内容出现，阅读时不再固定穿过正文。 */
+.home-section--signed {
+  position: relative;
+  isolation: isolate;
+}
+
 /* 全部链接 */
 .more-link {
   display: block;
@@ -231,26 +241,32 @@ main {
 }
 
 .magazine-item {
-  border-bottom: 1px solid #000;
+  border-bottom: 1px solid var(--list-divider);
 }
 
 .magazine-item:first-child {
-  border-top: 1px solid #000;
+  border-top: 1px solid var(--list-divider);
 }
 
 .magazine-item a {
   display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 28px;
-  padding: 18px 0;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px 0;
   align-items: baseline;
 }
 
 .magazine-date {
-  font-size: 16px;
-  color: var(--text-faint);
+  font-size: 13px;
+  color: var(--list-text-muted);
   font-family: var(--font-body);
-  line-height: 1.6;
+  line-height: 1.75;
+}
+
+.magazine-time {
+  white-space: nowrap;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.06em;
 }
 
 .magazine-content {
@@ -258,10 +274,10 @@ main {
 }
 
 .magazine-title {
-  font-size: 21px;
+  font-size: 24px;
   font-weight: 500;
   line-height: 1.45;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   transition: color 0.2s ease;
 }
 
@@ -274,9 +290,9 @@ main {
 }
 
 .magazine-desc {
-  font-size: 18px;
-  color: var(--text-muted);
-  line-height: 1.6;
+  font-size: 16px;
+  color: var(--list-text-muted);
+  line-height: 1.75;
 }
 
 /* Feature photo banner —— 全宽出血 + 极慢 kenburns
@@ -709,7 +725,11 @@ footer {
 
   .magazine-item a {
     grid-template-columns: 1fr;
-    gap: 4px;
+    gap: 8px;
+  }
+
+  .magazine-title {
+    font-size: 22px;
   }
 
   .photo-grid {
@@ -783,25 +803,25 @@ footer {
 .lightbox-next {
   right: 16px;
 }
-/* ========== 全站水印 ========== */
+/* ========== 首页局部署名 ========== */
 .watermark {
-  position: fixed;
+  position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(110px, 20vw, 380px);
+  overflow: hidden;
+  font-size: clamp(72px, 13vw, 168px);
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: rgba(0, 0, 0, 0.035);
+  color: rgba(0, 0, 0, 0.015);
   pointer-events: none;
   user-select: none;
-  z-index: 0;
+  z-index: -1;
   line-height: 1;
   font-family: var(--font-body);
 }
 
 [data-theme="dark"] .watermark {
-  color: rgba(255, 255, 255, 0.025);
+  color: rgba(255, 255, 255, 0.018);
 }
-

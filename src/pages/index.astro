@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import ListDate from '@/components/ListDate.astro';
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import { galleryImage } from '@/lib/gallery';
@@ -41,6 +42,12 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
     <canvas data-lunar aria-hidden="true"></canvas>
     <div class="cover-grain" aria-hidden="true"></div>
     <div class="cover-fallback" aria-hidden="true"></div>
+    <noscript>
+      <style is:inline>
+        .cover-fallback { display: block; }
+        [data-lunar] { display: none; }
+      </style>
+    </noscript>
 
     <div class="cover-intro">
       <h1 class="cover-sig">PESSIMIST11</h1>
@@ -70,7 +77,8 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
     </div>
   </div>
 
-  <section class="home-section reveal">
+  <section class="home-section home-section--signed reveal">
+    <div class="watermark" aria-hidden="true">pessimist11</div>
     <div class="home-section-heading">
       <h2 class="home-section-zh">知</h2>
     </div>
@@ -79,7 +87,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
         <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/zhi/${slug(post.id)}/`}>
             <div class="magazine-date">
-              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+              <ListDate date={post.data.pubDate} />
             </div>
             <div class="magazine-content">
               <div class="magazine-title">{post.data.title}</div>
@@ -101,7 +109,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
         <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/si/${slug(post.id)}/`}>
             <div class="magazine-date">
-              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+              <ListDate date={post.data.pubDate} />
             </div>
             <div class="magazine-content">
               <div class="magazine-title">{post.data.title}</div>
@@ -123,7 +131,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
         <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/zhen/${slug(post.id)}/`}>
             <div class="magazine-date">
-              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+              <ListDate date={post.data.pubDate} />
             </div>
             <div class="magazine-content">
               <div class="magazine-title">{post.data.title}</div>
@@ -145,7 +153,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
         <li class="magazine-item reveal" style={`--i: ${i}`}>
           <a href={`/fu/${slug(post.id)}/`}>
             <div class="magazine-date">
-              {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })}
+              <ListDate date={post.data.pubDate} />
             </div>
             <div class="magazine-content">
               <div class="magazine-title">{post.data.title}</div>
@@ -181,7 +189,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       position: absolute;
       inset: 0;
       pointer-events: none;
-      opacity: 0.5;
+      opacity: 0.32;
       mix-blend-mode: multiply;
       background-image:
         radial-gradient(circle at 18% 26%, rgba(0, 0, 0, 0.025) 0 1px, transparent 1px),
@@ -192,7 +200,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
 
     :global([data-theme='dark']) .cover-grain {
       mix-blend-mode: screen;
-      opacity: 0.25;
+      opacity: 0.18;
       background-image:
         radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px),
         radial-gradient(circle at 63% 71%, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px);
@@ -200,26 +208,34 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
 
     /* 无 WebGL 时的兜底月亮 */
     .cover-fallback {
+      --moon-base: color-mix(in srgb, var(--text) 5%, var(--bg));
+      --moon-shade: color-mix(in srgb, var(--text) 13%, var(--bg));
       display: none;
       position: absolute;
       left: 50%;
       top: 50%;
-      width: min(42vmin, 360px);
+      width: 68vmin;
       aspect-ratio: 1;
       transform: translate(-50%, -50%);
       border-radius: 50%;
       background:
-        radial-gradient(circle at 34% 30%, rgba(0, 0, 0, 0.07) 0 9%, transparent 10%),
-        radial-gradient(circle at 62% 58%, rgba(0, 0, 0, 0.055) 0 12%, transparent 13%),
-        radial-gradient(circle at 46% 74%, rgba(0, 0, 0, 0.045) 0 8%, transparent 9%),
-        radial-gradient(circle at 38% 34%, rgba(0, 0, 0, 0.015) 0%, rgba(0, 0, 0, 0.09) 100%);
+        radial-gradient(ellipse at 34% 36%, color-mix(in srgb, var(--text) 6%, transparent) 0 12%, transparent 28%),
+        radial-gradient(ellipse at 65% 62%, color-mix(in srgb, var(--text) 5%, transparent) 0 14%, transparent 32%),
+        radial-gradient(circle at 73% 27%, transparent 0 3%, color-mix(in srgb, var(--text) 5%, transparent) 3.5%, transparent 5%),
+        radial-gradient(circle at 38% 34%, var(--moon-base), var(--moon-shade));
+      box-shadow: 0 0 28px color-mix(in srgb, var(--text) 3%, transparent);
       opacity: 0.9;
     }
 
     :global(html.no-webgl) .cover-fallback { display: block; }
     :global(html.no-webgl) .cover canvas { display: none; }
+    :global([data-theme='dark']) .cover-fallback {
+      --moon-base: color-mix(in srgb, var(--text) 40%, var(--bg));
+      --moon-shade: color-mix(in srgb, var(--text) 24%, var(--bg));
+    }
 
     .cover-intro {
+      opacity: var(--lunar-intro, 1);
       position: absolute;
       left: 50%;
       top: 50%;
@@ -251,7 +267,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       font-size: clamp(14px, 1.4vw, 18px);
       line-height: 2.1;
       letter-spacing: 0.12em;
-      color: var(--text-muted);
+      color: #6e665e;
       opacity: 0;
       animation: cover-rise 1.6s ease 2s forwards;
     }
@@ -260,6 +276,8 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: none; }
     }
+
+    :global([data-theme='dark']) .cover-verse { color: #ddd7ce; }
 
     .cover-cue {
       position: absolute;
@@ -299,377 +317,6 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
   </style>
 
   <script>
-    import * as THREE from 'three';
-
-    // 月亮封面 —— 必须与 View Transitions 共存。
-    //
-    // Astro 的 ClientRouter 默认**不会**重新执行脚本。从别的页面点回首页时，
-    // DOM 被换成了新的（文字、署名都在），但这段初始化代码不会重跑，
-    // 新 canvas 就没有 WebGL 上下文 —— 表现就是「只见 PESSIMIST11，不见月亮」。
-    //
-    // 所以：初始化包成 boot() 挂到 astro:page-load（首次加载 + 每次换页后都会触发），
-    // 并且重建前先把上一个实例彻底销毁。WebGL 上下文数量有限（通常 16 个），
-    // 只重建不销毁的话，来回切几次就再也画不出来了。
-
-const vert = /* glsl */ `
-        void main() {
-          gl_Position = vec4(position.xy, 0.0, 1.0);
-        }
-      `;
-
-      // 片元着色器：一屏画完「纸 + 月 + 云」。
-      // 月亮用解析球面求交（不需要几何体），云用横向拉伸的 fbm 噪声带。
-      const frag = /* glsl */ `
-        precision highp float;
-
-        uniform vec2  uRes;
-        uniform float uTime;
-        uniform float uCamZ;
-        uniform vec3  uPaper;   // 纸色
-        uniform vec3  uInk;     // 墨色
-        uniform vec3  uLight;   // 受光方向（只用来给月面一点体积感）
-
-        float hash(vec3 p) {
-          p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
-          p *= 17.0;
-          return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-        }
-
-        float noise(vec3 x) {
-          vec3 i = floor(x);
-          vec3 f = fract(x);
-          f = f * f * (3.0 - 2.0 * f);
-          return mix(
-            mix(mix(hash(i + vec3(0.0, 0.0, 0.0)), hash(i + vec3(1.0, 0.0, 0.0)), f.x),
-                mix(hash(i + vec3(0.0, 1.0, 0.0)), hash(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
-            mix(mix(hash(i + vec3(0.0, 0.0, 1.0)), hash(i + vec3(1.0, 0.0, 1.0)), f.x),
-                mix(hash(i + vec3(0.0, 1.0, 1.0)), hash(i + vec3(1.0, 1.0, 1.0)), f.x), f.y),
-            f.z);
-        }
-
-        float fbm(vec3 p) {
-          float v = 0.0;
-          float a = 0.5;
-          for (int i = 0; i < 5; i++) {
-            v += a * noise(p);
-            p *= 2.07;
-            a *= 0.5;
-          }
-          return v;
-        }
-
-        // 三角波：周期函数，但不需要三角函数。浮尘每像素要算 18 个格子，
-        // 用 sin 做漂浮/闪烁的话一帧就是上亿次超越函数调用，集显会掉帧。
-        float tri(float x) {
-          return 1.0 - 4.0 * abs(fract(x) - 0.5);
-        }
-
-        // 无三角函数哈希：浮尘每像素要算 18 个格子，用 sin 哈希开销过大
-        vec2 hash2(vec2 p) {
-          vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
-          p3 += dot(p3, p3.yzx + 33.33);
-          return fract((p3.xx + p3.yz) * p3.zy);
-        }
-
-        // 月面浮尘：绕月的三维尘埃场。
-        //
-        // 与「全屏撒一层噪点」的区别在三件事，缺一件就会退回成屏幕上的脏点：
-        //   1. 每粒尘有独立深度，按透视放大提亮 → 有远近，不是同一张平面贴纸；
-        //   2. 视线被月面挡住的那一粒直接剔除 → 尘会被月亮遮住，
-        //      这才看得出尘浮在月前、月周，否则就只是糊在屏幕上；
-        //   3. 按「到月盘边缘的倍数」衰减 → 尘只聚在月球周围，屏幕四角是干净的纸。
-        //
-        // 仍然比 THREE.Points 便宜：不需要几何体、额外相机通道和逐帧 CPU 更新。
-        float dust(vec2 p, vec3 ro, float rMoon, float t, float scale, vec2 offset, float speed, float size, float spin) {
-          // 极缓自转。整场绕屏幕中心（＝月心）转，尘看起来是在绕月运行，而不是整块平移
-          float a = t * spin;
-          float cs = cos(a);
-          float sn = sin(a);
-          mat2 toScreen = mat2(cs, -sn, sn, cs); // 网格 → 屏幕
-          mat2 toGrid = mat2(cs, sn, -sn, cs);   // 屏幕 → 网格
-
-          vec2 g = (toGrid * p + offset) * scale;
-          vec2 id = floor(g);
-          float acc = 0.0;
-          for (int y = -1; y <= 1; y++) {
-            for (int x = -1; x <= 1; x++) {
-              vec2 c = id + vec2(float(x), float(y));
-              vec2 h = hash2(c);
-              // 格内位置 + 极缓的漂浮（三角波往复，粒子不会漂出格子）
-              vec2 pos = c + 0.5 + (h - 0.5) * 0.72;
-              pos.x += tri(t * speed * 0.159 + h.y) * 0.30;
-              pos.y += tri(t * speed * 0.124 + h.x + 0.25) * 0.26;
-
-              // 先做最便宜的剔除：绝大多数格子跟这个像素无关，
-              // 后面的开方和求交只留给真正压到像素的少数格子
-              float d = length(g - pos);
-              if (d > size * 2.4) continue;
-
-              // 还原成这粒尘自己的屏幕位置（未旋转），也才有它自己的视线
-              vec2 ps = toScreen * (pos / scale - offset);
-
-              // 只围着月盘：1.0 就是月亮的边缘。
-              // 外缘阈值带一点随机，边界才不会像圆规画出来的圆
-              float edge = length(ps) / rMoon;
-              float near = smoothstep(1.35 + 0.3 * h.x, 1.0, edge);
-              if (near <= 0.002) continue;
-
-              // 贴着月缘的那一圈略微提亮，凑出一层很淡的月晕
-              float rim = smoothstep(0.3, 0.0, abs(edge - 1.0));
-
-              // 独立深度 → 近的更大更亮，远的更小更淡
-              float z = mix(0.25, uCamZ - 1.2, h.y);
-              vec3 rd = normalize(vec3(ps * 0.287, -1.0));
-              float s = (uCamZ - z) / max(-rd.z, 1e-4);
-
-              // 被月面挡住就剔除。这一条是「浮在月周」与「糊在屏幕上」的分界
-              float bb = dot(ro, rd);
-              float hh = bb * bb - (dot(ro, ro) - 1.0);
-              if (hh > 0.0 && s > -bb - sqrt(hh)) continue;
-
-              float persp = clamp(3.0 / s, 0.55, 1.7);
-              float radius = size * (0.6 + 0.7 * h.x) * persp;
-
-              // 明灭闪烁，让尘不像静态噪点。仍用三角波，循环里不引三角函数
-              float ph = fract(t * (0.06 + h.y * 0.05) + h.x);
-              float tw = 0.55 + 0.45 * (1.0 - abs(ph * 2.0 - 1.0));
-              // 中心实、边缘软的小点：尘要像细颗粒，不能糊成一颗颗散景球
-              acc += smoothstep(radius, radius * 0.25, d) * tw * near * persp * (0.92 + 0.35 * rim);
-            }
-          }
-          return acc;
-        }
-
-        // 横向拉伸的水墨云带
-        float cloudField(vec2 p, float t) {
-          vec2 q = vec2(p.x * 0.85, p.y * 3.2 + t * 0.02);
-          float f = fbm(vec3(q, t * 0.03));
-          f = smoothstep(0.38, 0.82, f);
-          float band = exp(-pow((p.y + 0.03) * 1.85, 2.0));
-          return f * band;
-        }
-
-        void main() {
-          vec2 p = (gl_FragCoord.xy / uRes.xy) * 2.0 - 1.0;
-          p.x *= uRes.x / uRes.y;
-
-          vec3 ro = vec3(0.0, 0.0, uCamZ);
-          vec3 rd = normalize(vec3(p * 0.287, -1.0));
-
-          // 解析求交：圆心在原点、半径 1
-          float b = dot(ro, rd);
-          float c = dot(ro, ro) - 1.0;
-          float h = b * b - c;
-
-          vec3 col = uPaper;
-
-          if (h > 0.0 && b < 0.0) {
-            float t = -b - sqrt(h);
-            vec3 pos = ro + rd * t;
-            vec3 n = normalize(pos);
-
-            // 绕 Y 轴自转：让贴图随月球转（世界法线反旋得到物体空间法线）
-            float a = -uTime * 0.017;
-            float cs = cos(a);
-            float sn = sin(a);
-            vec3 no = vec3(n.x * cs + n.z * sn, n.y, -n.x * sn + n.z * cs);
-
-            // 月海（低频暗斑）与环形山（高频细纹）
-            float maria = smoothstep(0.40, 0.70, fbm(no * 2.2));
-            float crater = fbm(no * 8.0);
-
-            vec3 moonCol = mix(uPaper, uInk, 0.10 + maria * 0.16);
-            moonCol = mix(moonCol, uInk, crater * 0.045);
-
-            // 极轻的受光，只给一点球体感，不画硬阴影
-            float diff = dot(n, normalize(uLight));
-            moonCol = mix(uPaper, moonCol, 0.80 + 0.20 * smoothstep(-0.7, 0.9, diff));
-
-            // 轮廓羽化：撞点离圆心越近越实，靠近边缘融进纸里
-            float impact = length(cross(ro, rd));
-            float edge = smoothstep(1.0, 0.955, impact);
-
-            col = mix(col, moonCol, edge);
-          }
-
-          // 云叠在最上层 —— 形成「月穿云中」
-          float cl = cloudField(p, uTime);
-          col = mix(col, uInk, cl * 0.17);
-
-          // 月盘在屏幕上的半径：解「视线与单位球相切」得来，随 uCamZ 变化。
-          // 浮尘的疏密以它为基准，所以换视口比例时尘始终贴着月亮。
-          float rMoon = 1.0 / (0.287 * sqrt(max(uCamZ * uCamZ - 1.0, 1e-3)));
-
-          // 浮尘：细密一层 + 疏朗一层，反向极缓自转，叠出景深
-          float d1 = dust(p, ro, rMoon, uTime, 40.0, vec2(0.0), 0.20, 0.044, 0.030);
-          float d2 = dust(p, ro, rMoon, uTime, 18.0, vec2(7.3, 3.1), 0.12, 0.066, -0.018);
-          col = mix(col, uInk, clamp(d1 * 0.22 + d2 * 0.12, 0.0, 0.5));
-
-          // 纸纹颗粒，避免大面积平色
-          col *= 0.994 + 0.012 * hash(vec3(gl_FragCoord.xy, 3.7));
-
-          gl_FragColor = vec4(col, 1.0);
-        }
-      `;
-
-    // 配色跟随站点主题：亮色=纸白淡墨，暗色=墨底素月（直接读全局 token）
-
-    // 配色跟随站点主题：亮色=纸白淡墨，暗色=墨底素月（直接读全局 token）
-    function cssColor(name, fallback) {
-      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-      return new THREE.Color(v || fallback);
-    }
-
-    let live = null; // 当前这一个封面实例
-
-    function teardown() {
-      if (!live) return;
-      live.stop();
-      live.io.disconnect();
-      live.themeObserver.disconnect();
-      window.removeEventListener('resize', live.onResize);
-      // 标记「这块 canvas 是我们主动销毁的」。webglcontextlost 是异步派发的，
-      // 用局部标志会被重置掉，打在元素上才可靠。
-      live.canvas.__tmDisposed = true;
-      // dispose() 只释放资源，**不会**归还 WebGL 上下文；必须 forceContextLoss()。
-      // 不然来回切页时上下文会一路累积（浏览器通常只给 16 个），
-      // 到后来 new WebGLRenderer 直接失败 —— 表现就是「页面好好的，月亮没了」。
-      live.renderer.forceContextLoss();
-      live.renderer.dispose();
-      live = null;
-    }
-
-    function boot() {
-      const canvas = document.querySelector('[data-lunar]');
-      const cover = document.querySelector('[data-cover]');
-
-      // 不在首页：把可能残留的实例销毁掉
-      if (!canvas || !cover) {
-        teardown();
-        return;
-      }
-
-      // 幂等：同一个 canvas 已经初始化过就直接返回。
-      // 这样 boot() 既能挂事件、也能在首次加载时直接调用，不会重复建渲染器。
-      if (live && live.canvas === canvas) return;
-
-      teardown(); // 换页后 DOM 是新的 canvas，先销毁上一个实例
-
-      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      let renderer;
-      try {
-        renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
-      } catch {
-        document.documentElement.classList.add('no-webgl');
-        return;
-      }
-
-      // 显存不足 / 驱动重置 / 切页太频繁都可能丢上下文。丢了之后画面不会自己回来，
-      // 封面就剩署名和题句、看着像「月亮不见了」，所以这里退回 CSS 画的那颗月亮。
-      canvas.addEventListener('webglcontextlost', (e) => {
-        e.preventDefault();
-        // 切页时 teardown() 会主动 forceContextLoss()，那不是真的出故障；
-        // 这里若不分青红皂白加上 no-webgl，会一直留在 <html> 上（换页不重置 html），
-        // 结果就是「点回首页后月亮被 CSS 藏起来，刷新才好」。
-        if (canvas.__tmDisposed) return;
-        document.documentElement.classList.add('no-webgl');
-        stop();
-      });
-
-      // 上一次可能留下了 no-webgl（兜底状态）：既然这次渲染器建成功了，就清掉它
-      document.documentElement.classList.remove('no-webgl');
-
-      const uniforms = {
-        uRes: { value: new THREE.Vector2(1, 1) },
-        uTime: { value: 0 },
-        uCamZ: { value: 4.5 },
-        uPaper: { value: cssColor('--bg', '#f3efe8') },
-        uInk: { value: cssColor('--text', '#1a1a1a') },
-        uLight: { value: new THREE.Vector3(-0.45, 0.28, 0.85).normalize() },
-      };
-
-      const material = new THREE.ShaderMaterial({ uniforms, vertexShader: vert, fragmentShader: frag });
-      const scene = new THREE.Scene();
-      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-      scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
-
-      // 画布尺寸跟随封面容器
-      function resize() {
-        const w = cover.clientWidth;
-        const h = cover.clientHeight;
-        if (!w || !h) return;
-        const cap = Math.min(w, h) < 760 ? 1.5 : 2; // 逐像素着色器，移动端压 DPR 省电
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
-        renderer.setSize(w, h, false);
-        uniforms.uRes.value.set(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
-        uniforms.uCamZ.value = 4.5 / Math.max(Math.min(w / h, 1), 0.66);
-      }
-
-      let raf = 0;
-      let running = false;
-      let last = 0;
-      let clock = 0;
-
-      function frame(now) {
-        // 累加而不是用绝对时间 —— 中途暂停再恢复时月球不会「跳」一下
-        if (last) clock += Math.min((now - last) / 1000, 0.05);
-        last = now;
-        uniforms.uTime.value = clock;
-        renderer.render(scene, camera);
-        raf = requestAnimationFrame(frame);
-      }
-
-      function start() {
-        if (running || reduced) return;
-        running = true;
-        last = 0;
-        raf = requestAnimationFrame(frame);
-      }
-
-      function stop() {
-        running = false;
-        cancelAnimationFrame(raf);
-        raf = 0;
-      }
-
-      // 封面滚出视口就停渲染 —— 否则用户读文章时 GPU 一直空转
-      const io = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) start();
-        else stop();
-      }, { threshold: 0 });
-      io.observe(cover);
-
-      // 主题切换（点导航上的开关）时刷新配色
-      const themeObserver = new MutationObserver(() => {
-        uniforms.uPaper.value = cssColor('--bg', '#f3efe8');
-        uniforms.uInk.value = cssColor('--text', '#1a1a1a');
-        if (reduced) renderer.render(scene, camera);
-      });
-      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-      const onResize = () => resize();
-      resize();
-      window.addEventListener('resize', onResize, { passive: true });
-
-      if (reduced) renderer.render(scene, camera); // 只出一帧，不动
-      else start();
-
-      live = { canvas, renderer, start, stop, io, themeObserver, onResize };
-    }
-
-    // 切到后台就停、回来再继续。挂在模块作用域只注册一次，
-    // 通过 live 间接操作当前实例（放在 boot 里会随换页不断累积监听器）。
-    document.addEventListener('visibilitychange', () => {
-      if (!live) return;
-      if (document.hidden) live.stop();
-      else live.start();
-    });
-
-    // astro:page-load 在「首次加载」和「每次换页后」都会触发。
-    // 但首次加载时它有可能在本模块执行之前就已派发 —— 所以再直接调一次，
-    // boot() 对同一个 canvas 是幂等的，不会重复初始化。
-    document.addEventListener('astro:page-load', boot);
-    boot();
+    import '@/lib/lunar';
   </script>
 </BaseLayout>

@@ -1,0 +1,12 @@
+---
+interface Props {
+  date: Date;
+  includeYear?: boolean;
+}
+
+const { date, includeYear = true } = Astro.props;
+const isoDate = date.toISOString().slice(0, 10);
+const label = (includeYear ? isoDate : isoDate.slice(5)).replaceAll('-', '.');
+---
+
+<time class="magazine-time" datetime={isoDate}>{label}</time>

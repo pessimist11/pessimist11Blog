@@ -86,8 +86,22 @@ const viewBox = '1360 160 480 240';
 </figure>
 
 <script>
-  const figure = document.querySelector('.travel-map');
-  if (figure && !figure.dataset.bound) {
+  let live: { figure: HTMLElement; dispose: () => void } | null = null;
+
+  function teardown() {
+    live?.dispose();
+    live = null;
+  }
+
+  // 模块脚本只执行一次；每次切页后都要为新的地图 DOM 初始化。
+  function boot() {
+    const figure = document.querySelector<HTMLElement>('.travel-map');
+    if (live?.figure === figure) return;
+    teardown();
+    if (!figure) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
     figure.dataset.bound = '1';
     const canvas = figure.querySelector('.tm-canvas');
     const svg = figure.querySelector('.tm-svg svg');
@@ -244,7 +258,7 @@ const viewBox = '1360 160 480 240';
         e.preventDefault();
         zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016));
       },
-      { passive: false }
+      { passive: false, signal }
     );
 
     // 双击放大 / 复位
@@ -256,7 +270,7 @@ const viewBox = '1360 160 480 240';
       } else {
         zoomAt(e.clientX, e.clientY, 2);
       }
-    });
+    }, { signal });
 
     // 右下角的 ＋ / － / ↺：滚轮缩放必须按住 Ctrl 才生效，光靠它太不好发现
     figure.addEventListener('click', (e) => {
@@ -274,7 +288,7 @@ const viewBox = '1360 160 480 240';
         moved = false;
         layout();
       }
-    });
+    }, { signal });
 
     // 拖拽平移 + 双指捏合缩放
     const pointers = new Map();
@@ -285,7 +299,7 @@ const viewBox = '1360 160 480 240';
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       dragged = false;
       if (pointers.size === 1) canvas.classList.add('is-grab');
-    });
+    }, { signal });
 
     canvas.addEventListener('pointermove', (e) => {
       if (!pointers.has(e.pointerId)) return;
@@ -315,7 +329,7 @@ const viewBox = '1360 160 480 240';
         clampViewBox();
         positionPins();
       }
-    });
+    }, { signal });
 
     function endPointer(e) {
       pointers.delete(e.pointerId);
@@ -325,11 +339,11 @@ const viewBox = '1360 160 480 240';
         updateLabels();
       }
     }
-    canvas.addEventListener('pointerup', endPointer);
-    canvas.addEventListener('pointercancel', endPointer);
+    canvas.addEventListener('pointerup', endPointer, { signal });
+    canvas.addEventListener('pointercancel', endPointer, { signal });
     canvas.addEventListener('pointerleave', (e) => {
       if (pointers.size === 1) pointers.delete(e.pointerId);
-    });
+    }, { signal });
 
     // 拖拽后抑制图钉跳转
     canvas.addEventListener('click', (e) => {
@@ -337,7 +351,7 @@ const viewBox = '1360 160 480 240';
         e.preventDefault();
         e.stopPropagation();
       }
-    });
+    }, { signal });
 
     // 换视口：重算默认视野比例；用户没手动缩放过就跟着复位，缩放过则只修高度
     function onResize() {
@@ -350,12 +364,26 @@ const viewBox = '1360 160 480 240';
       }
       layout();
     }
-    // ClientRouter 换页后本脚本会再跑一遍，旧监听器先摘掉，别让它们越积越多
-    if (window.__tmResize) window.removeEventListener('resize', window.__tmResize);
-    window.__tmResize = onResize;
-    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true, signal });
     layout();
+
+    live = {
+      figure,
+      dispose() {
+        controller.abort();
+        clearTimeout(labelsTimer);
+        clearTimeout(hintTimer);
+        pointers.clear();
+        canvas.classList.remove('is-grab');
+        figure.classList.remove('is-hint');
+        delete figure.dataset.bound;
+      },
+    };
   }
+
+  document.addEventListener('astro:before-swap', teardown);
+  document.addEventListener('astro:page-load', boot);
+  boot(); // 兼顾首次加载，幂等检查避免重复绑定。
 </script>
 
 <style>

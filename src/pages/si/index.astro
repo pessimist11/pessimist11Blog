@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import ListDate from '@/components/ListDate.astro';
 import { getCollection } from 'astro:content';
 
 const posts = await getCollection('si');
@@ -31,7 +32,7 @@ for (const post of sorted) {
             <li class="magazine-item reveal" style={`--i: ${i}`}>
               <a href={`/si/${post.id.replace(/\.(md|mdx)$/, '')}/`}>
                 <div class="magazine-date">
-                  {post.data.pubDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                  <ListDate date={post.data.pubDate} includeYear={false} />
                 </div>
                 <div class="magazine-content">
                   <div class="magazine-title">{post.data.title}</div>
