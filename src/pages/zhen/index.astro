@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import ListDate from '@/components/ListDate.astro';
 import { getCollection } from 'astro:content';
 import TravelMap from '@/components/TravelMap.astro';
+import { galleryImage } from '@/lib/gallery';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -25,16 +26,16 @@ try {
   console.warn('[zhen] 未找到 public/gallery/manifest.json，先运行 npm run gallery');
 }
 
-const latest = sorted[0];
-
 // 去过的地方（地图用）
 const places = sorted
   .filter(p => typeof p.data.lat === 'number' && typeof p.data.lng === 'number')
   .map(p => ({
     name: p.data.title,
     location: p.data.location || '',
-    year: p.data.pubDate.getFullYear(),
-    frames: p.data.coverImages?.length || (p.data.coverImage ? 1 : 0),
+    date: p.data.pubDate.toISOString().slice(0, 10),
+    frames: new Set([...p.body.matchAll(/!\[[^\]]*\]\((\/gallery\/[^)\s]+)\)/g)].map(match => match[1])).size || p.data.coverImages?.length || (p.data.coverImage ? 1 : 0),
+    image: galleryImage(p.data.coverImage || p.data.coverImages?.[0]),
+    description: p.data.description,
     lat: p.data.lat as number,
     lng: p.data.lng as number,
     href: `/zhen/${p.id.replace(/\.(md|mdx)$/, '')}/`,
@@ -50,24 +51,9 @@ const places = sorted
     </div>
     <p class="section-intro">镜头截取的时间切片，快门按下记录不可逆的一帧。</p>
 
-    <div class="zhen-series reveal">
-      <div class="zhen-series-head">
-        <div class="zhen-series-label">系列策展</div>
-        <div class="zhen-series-count">{totalFrames} 帧 · {sorted.length} 辑</div>
-      </div>
-      {latest && (
-        <a href={`/zhen/${latest.id.replace(/\.(md|mdx)$/, '')}/`} class="zhen-series-featured">
-          <span class="zhen-series-title">《{latest.data.title}》</span>
-          <span class="zhen-series-sub">
-            {latest.data.location || ''}{latest.data.coverImages?.length ? ` · ${latest.data.coverImages.length} 帧` : ''}
-          </span>
-          <span class="zhen-series-enter">进入系列 →</span>
-        </a>
-      )}
-    </div>
-
     <TravelMap places={places} />
 
+    <div class="zhen-archive-heading"><h2>行旅档案</h2><span>{totalFrames} 帧 · {sorted.length} 辑</span></div>
     <ul class="magazine-list">
       {sorted.map((post, i) => (
         <li class="magazine-item reveal" style={`--i: ${i}`}>
@@ -89,58 +75,16 @@ const places = sorted
 </BaseLayout>
 
 <style>
-  .zhen-series {
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 22px 24px;
-    margin: 28px 0 48px;
-    background: var(--surface);
-  }
-  .zhen-series-head {
+  .page-heading { margin-bottom: 24px; }
+  .section-intro { margin-bottom: 28px; }
+  .zhen-archive-heading {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 18px;
+    color: var(--list-text-muted);
   }
-  .zhen-series-label {
-    font-size: 13px;
-    letter-spacing: 0.12em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-  }
-  .zhen-series-count {
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-  .zhen-series-featured {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    text-decoration: none;
-    color: var(--text);
-  }
-  .zhen-series-title {
-    font-size: 34px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-  }
-  .zhen-series-sub {
-    color: var(--text-muted);
-    font-size: 14px;
-  }
-  .zhen-series-enter {
-    color: var(--accent);
-    font-size: 15px;
-    white-space: nowrap;
-  }
-  .zhen-series-featured:hover .zhen-series-enter {
-    color: var(--accent-hover);
-  }
-  @media (max-width: 640px) {
-    .zhen-series-title {
-      font-size: 26px;
-    }
-  }
+  .zhen-archive-heading h2 { font-size: 15px; font-weight: 400; letter-spacing: .12em; }
+  .zhen-archive-heading span { font-size: 12px; }
 </style>

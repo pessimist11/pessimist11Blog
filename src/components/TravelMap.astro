@@ -1,624 +1,204 @@
 ---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import worldmapSvg from '@/assets/worldmap.svg?raw';
+
 interface Place {
   name: string;
   location?: string;
-  year: number;
+  date: string;
   frames: number;
   lat: number;
   lng: number;
   href: string;
+  image?: ImageMetadata;
+  description?: string;
   latest?: boolean;
 }
-
-interface Props {
-  places: Place[];
-}
-
-const { places } = Astro.props;
-import worldmapSvg from '@/assets/worldmap.svg?raw';
-
-const W = 2000;
-const H = 1000;
-
-// 等距圆柱投影：经纬度 → SVG 坐标
-const pins = places
-  .filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
-  .sort((a, b) => b.frames - a.frames)
-  .map(p => ({
-    ...p,
-    sx: ((p.lng + 180) / 360) * W,
-    sy: ((90 - p.lat) / 180) * H,
-  }));
-
-// 海洋名称：和陆地一样按等距圆柱投影算坐标，但交给页面上的元素定位，不写进 SVG ——
-// build-fonts.mjs 只扫描 src 下的文本文件，.svg 不在扫描范围内，写进去这些字会缺字形变豆腐块。
-// 坐标要落在「会出现的视野里」才有意义：默认视野只框住西太平洋，所以只有太平洋会露出来，
-// 其余三个在往西/往南/往北拖的时候才出现。
-const OCEANS = [
-  { name: '太平洋', lng: 142, lat: 24 },
-  { name: '大西洋', lng: -35, lat: 22 },
-  { name: '印度洋', lng: 78, lat: -25 },
-  { name: '北冰洋', lng: 40, lat: 80 },
-];
-const oceans = OCEANS.map(o => ({
-  ...o,
-  sx: ((o.lng + 180) / 360) * W,
-  sy: ((90 - o.lat) / 180) * H,
-}));
-
-// 初始视野：以中国为中心、宽度固定。高度不写死 —— 由容器比例在运行时算（见组件脚本），
-// 否则窗口比例和容器对不上时 SVG 会等比留白。
-const viewBox = '1360 160 480 240';
+interface Props { places: Place[]; }
+const places = Astro.props.places.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180);
+const coordinate = (n: number, positive: string, negative: string) => `${Math.abs(n).toFixed(2)}° ${n >= 0 ? positive : negative}`;
+const initialView = [1410, 210, 400, 300];
 ---
 
-<figure class="travel-map reveal" data-viewbox={viewBox} aria-label="去过的地方地图">
-  <div class="tm-view tm-view--flat">
-    <div class="tm-canvas" aria-hidden="false">
-      {pins.map(pin => (
-        <a
-          class={`tm-pin${pin.latest ? ' tm-pin--latest' : ''}`}
-          href={pin.href}
-          data-svgx={pin.sx}
-          data-svgy={pin.sy}
-          data-frames={pin.frames}
-          aria-label={`${pin.name} ${pin.year}`}
-        >
-          <span class="tm-pin-dot" aria-hidden="true"></span>
-          <span class="tm-label">{pin.name}</span>
-        </a>
-      ))}
+{places.length > 0 && (
+  <section class="travel-atlas reveal" data-atlas data-mode="flat" aria-label="行旅地图">
+    <div class="tm-heading">
+      <span>行旅坐标 <span class="tm-heading-en">TRAVEL ATLAS</span></span>
+      <span>{String(places.length).padStart(2, '0')} 辑风景</span>
     </div>
-    <div class="tm-svg" set:html={worldmapSvg}></div>
-    <div class="tm-oceans" aria-hidden="true">
-      {oceans.map(o => (
-        <span class="tm-ocean" data-svgx={o.sx} data-svgy={o.sy}>{o.name}</span>
-      ))}
+
+    <div class="tm-layout">
+      <div class="tm-stories" aria-live="polite" aria-atomic="true">
+        {places.map((place, i) => (
+          <article class="tm-story" data-place-card={i} hidden={i !== 0}>
+            <div class="tm-kicker">{place.latest ? '最近一程' : '行旅档案'}</div>
+            <h2>{place.name}</h2>
+            <p class="tm-coordinates">{coordinate(place.lat, 'N', 'S')} <span>／</span> {coordinate(place.lng, 'E', 'W')}</p>
+            <a class="tm-photo" href={place.href} aria-label={`打开${place.name}相册`}>
+              {place.image && <Image src={place.image} width={600} height={420} fit="cover" format="webp" alt={place.name} loading={i === 0 ? 'eager' : 'lazy'} />}
+            </a>
+            {place.description && <p class="tm-description">{place.description}</p>}
+            <div class="tm-meta"><time datetime={place.date}>{place.date.replaceAll('-', '.')}</time><span>{place.frames} 帧</span></div>
+            <a class="tm-album" href={place.href}>查看相册 <span aria-hidden="true">↗</span></a>
+          </article>
+        ))}
+        <div class="tm-pagination tm-enhanced">
+          <span class="tm-page"><span data-place-current>01</span> / {String(places.length).padStart(2, '0')}</span>
+          <div>
+            <button type="button" data-step="-1" aria-label="上一辑">←</button>
+            <button type="button" data-step="1" aria-label="下一辑">→</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tm-map">
+        <div class="tm-map-head tm-enhanced">
+          <span class="tm-map-caption" data-map-caption>点选坐标，查看影集</span>
+          <div class="tm-modes" role="group" aria-label="地图视图">
+            <button type="button" data-mode-button="globe" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6.5h14M5 17.5h14"/></svg>地球</button>
+            <button type="button" data-mode-button="flat" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2ZM9 3v16M15 5v16"/></svg>平面</button>
+          </div>
+        </div>
+
+        <div class="tm-stage" tabindex="0" role="group" aria-label="行旅地图；方向键移动，加减键缩放，Home 复位">
+          <canvas class="tm-globe" aria-hidden="true"></canvas>
+          <div class="tm-flat" aria-hidden="true" set:html={worldmapSvg.replace('viewBox="0 0 2000 1000"', `viewBox="${initialView.join(' ')}" preserveAspectRatio="none"`)} />
+          <div class="tm-pins">
+            {places.map((place, i) => (
+              <a class={`tm-pin${i === 0 ? ' is-active' : ''}`} data-place={i} data-lat={place.lat} data-lng={place.lng} href={place.href}
+                style={`left:${(((place.lng + 180) / 360 * 2000 - initialView[0]) / initialView[2]) * 100}%;top:${(((90 - place.lat) / 180 * 1000 - initialView[1]) / initialView[3]) * 100}%`}
+                aria-label={`预览${place.name}，${place.frames}帧`} aria-current={i === 0 ? 'true' : undefined}>
+                <span class="tm-pin-dot" aria-hidden="true"></span><span class="tm-pin-label">{place.location || place.name}</span>
+              </a>
+            ))}
+          </div>
+          <span class="tm-north" aria-hidden="true">N<span>↑</span></span>
+        </div>
+
+        <div class="tm-map-foot tm-enhanced">
+          <span class="tm-instruction"><span class="tm-desktop-hint">拖动探索 · Ctrl / ⌘ 滚动缩放</span><span class="tm-touch-hint">点选地点，查看这一程</span></span>
+          <div class="tm-tools" role="group" aria-label="地图操作">
+            <button type="button" class="tm-interact" data-interact aria-pressed="false">操作地图</button>
+            <button type="button" data-map="in" aria-label="放大地图">＋</button>
+            <button type="button" data-map="out" aria-label="缩小地图">−</button>
+            <button type="button" data-map="reset" aria-label="查看全部足迹"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"/></svg></button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="tm-tools" role="group" aria-label="地图缩放">
-    <button type="button" class="tm-tool" data-map="in" aria-label="放大">＋</button>
-    <button type="button" class="tm-tool" data-map="out" aria-label="缩小">－</button>
-    <button type="button" class="tm-tool" data-map="reset" aria-label="恢复默认视野">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" /></svg>
-    </button>
-  </div>
-  <div class="tm-hint" role="status">按住 Ctrl / ⌘ 滚动缩放 · 双击放大 · 拖拽平移</div>
-</figure>
+
+    <nav class="tm-index" aria-label="选择行旅地点">
+      {places.map((place, i) => <a href={place.href} data-place={i} class={i === 0 ? 'is-active' : ''} aria-current={i === 0 ? 'true' : undefined}><span>{String(i + 1).padStart(2, '0')}</span>{place.name}</a>)}
+    </nav>
+  </section>
+)}
 
 <script>
-  let live: { figure: HTMLElement; dispose: () => void } | null = null;
-
-  function teardown() {
-    live?.dispose();
-    live = null;
-  }
-
-  // 模块脚本只执行一次；每次切页后都要为新的地图 DOM 初始化。
-  function boot() {
-    const figure = document.querySelector<HTMLElement>('.travel-map');
-    if (live?.figure === figure) return;
-    teardown();
-    if (!figure) return;
-
-    const controller = new AbortController();
-    const { signal } = controller;
-    figure.dataset.bound = '1';
-    const canvas = figure.querySelector('.tm-canvas');
-    const svg = figure.querySelector('.tm-svg svg');
-    const pins = [...figure.querySelectorAll('.tm-pin')]
-      .map(el => ({
-        el,
-        label: el.querySelector('.tm-label'),
-        sx: parseFloat(el.dataset.svgx || '0'),
-        sy: parseFloat(el.dataset.svgy || '0'),
-        frames: parseInt(el.dataset.frames || '0', 10),
-      }))
-      .sort((a, b) => b.frames - a.frames);
-    const oceans = [...figure.querySelectorAll('.tm-ocean')].map(el => ({
-      el,
-      sx: parseFloat(el.dataset.svgx || '0'),
-      sy: parseFloat(el.dataset.svgy || '0'),
-    }));
-    const toolIn = figure.querySelector('[data-map="in"]');
-    const toolOut = figure.querySelector('[data-map="out"]');
-
-    const WORLD_W = 2000;
-    const WORLD_H = 1000;
-    // data-viewbox 只用它的中心和宽度；高度交给容器比例决定
-    const BASE = (figure.dataset.viewbox || '1360 160 480 240').split(' ').map(Number);
-    const BASE_W = BASE[2] || 480;
-    const BASE_CENTER = { x: BASE[0] + BASE_W / 2, y: BASE[1] + (BASE[3] || BASE_W / 2) / 2 };
-
-    // 默认视野的高度跟着容器比例走。窗口比例与容器不一致时 SVG 会等比留白：
-    // 2:1 的窗口塞进 2.35:1 的桌面容器，左右各空约 80px；塞进更方的移动端容器，上下空得更多。
-    function baseViewFromBox() {
-      const rect = figure.getBoundingClientRect();
-      const box = rect.height > 0 ? rect.width / rect.height : 2;
-      const h = BASE_W / clamp(box || 2, 0.9, 3.4);
-      return [BASE_CENTER.x - BASE_W / 2, BASE_CENTER.y - h / 2, BASE_W, h];
-    }
-
-    let baseView = baseViewFromBox();
-    let moved = false; // 用户自己缩放过：换视口时不要把他的视野重置掉
-    let vb = [...baseView];
-    // 最大缩放 10×（原为 14×）：这张图是 1:50m 数据，14× 相当于把 1:50M 的图放到约 1:2M 看，
-    // 海岸线就只剩一条条直线段了。10× 仍在「放大细看」的范围里，但棱角感明显收敛。
-    const minZoomW = BASE_W / 10;
-    let aspect = baseView[3] / baseView[2];
-
-    function clamp(v, lo, hi) {
-      return Math.min(hi, Math.max(lo, v));
-    }
-
-    // 到底了就把对应按钮置灰，省得用户对着没反应的按钮点
-    function updateTools() {
-      if (toolIn) toolIn.disabled = vb[2] <= minZoomW * 1.02;
-      if (toolOut) toolOut.disabled = vb[2] >= WORLD_W * 0.999;
-    }
-
-    let labelsTimer = null;
-
-    function positionPins() {
-      if (svg) svg.setAttribute('viewBox', vb.join(' '));
-      for (const pin of pins) {
-        const px = ((pin.sx - vb[0]) / vb[2]) * 100;
-        const py = ((pin.sy - vb[1]) / vb[3]) * 100;
-        const show = px >= -4 && px <= 104 && py >= -4 && py <= 104;
-        pin.el.style.display = show ? '' : 'none';
-        if (!show) {
-          pin.el.classList.add('is-label-hidden');
-          continue;
-        }
-        pin.el.style.left = px.toFixed(2) + '%';
-        pin.el.style.top = py.toFixed(2) + '%';
-      }
-      // 海洋名称跟着地图走；留一点边距，别让字半个挂在盒子外
-      for (const ocean of oceans) {
-        const px = ((ocean.sx - vb[0]) / vb[2]) * 100;
-        const py = ((ocean.sy - vb[1]) / vb[3]) * 100;
-        const show = px >= 2 && px <= 98 && py >= 2 && py <= 98;
-        ocean.el.style.display = show ? '' : 'none';
-        if (show) {
-          ocean.el.style.left = px.toFixed(2) + '%';
-          ocean.el.style.top = py.toFixed(2) + '%';
-        }
-      }
-      updateTools();
-    }
-
-    function updateLabels() {
-      const visible = pins.filter(p => p.el.style.display !== 'none');
-      // 标签碰撞检测：先试默认位置（图钉下方），被压住就翻到上方，两边都压住才藏起来。
-      // 藏起来的标签鼠标移上去／键盘聚焦时会露出来（见样式），所以每个地点始终够得着名字。
-      const placed = [];
-      for (const pin of visible) {
-        let ok = false;
-        for (const above of [false, true]) {
-          pin.el.classList.toggle('is-label-above', above);
-          const rect = pin.label.getBoundingClientRect();
-          const hit = placed.some(r =>
-            !(rect.right < r.left - 4 || rect.left > r.right + 4 || rect.bottom < r.top - 2 || rect.top > r.bottom + 2)
-          );
-          if (!hit) {
-            placed.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
-            ok = true;
-            break;
-          }
-        }
-        pin.el.classList.toggle('is-label-hidden', !ok);
-      }
-    }
-
-    function layout() {
-      positionPins();
-      updateLabels();
-    }
-
-    // 拖拽时同步更新位置（图钉与地图同一帧渲染，标记点不会相对地图漂移）；
-    // 标签碰撞检测延后执行，避免拖拽卡顿
-    function scheduleLabels() {
-      clearTimeout(labelsTimer);
-      labelsTimer = setTimeout(updateLabels, 120);
-    }
-
-    function clampViewBox() {
-      vb[2] = clamp(vb[2], minZoomW, WORLD_W);
-      vb[3] = vb[2] * aspect;
-      vb[0] = clamp(vb[0], 0, WORLD_W - vb[2]);
-      vb[1] = clamp(vb[1], 0, WORLD_H - vb[3]);
-    }
-
-    function zoomAt(clientX, clientY, factor) {
-      moved = true;
-      const rect = canvas.getBoundingClientRect();
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
-      const fx = vb[0] + (px / rect.width) * vb[2];
-      const fy = vb[1] + (py / rect.height) * vb[3];
-      vb[2] = clamp(vb[2] / factor, minZoomW, WORLD_W);
-      vb[3] = vb[2] * aspect;
-      vb[0] = fx - (px / rect.width) * vb[2];
-      vb[1] = fy - (py / rect.height) * vb[3];
-      clampViewBox();
-      positionPins();
-      scheduleLabels();
-    }
-
-    // Ctrl/Cmd + 滚轮缩放，否则提示
-    let hintTimer;
-    figure.addEventListener(
-      'wheel',
-      (e) => {
-        if (!e.ctrlKey && !e.metaKey) {
-          figure.classList.add('is-hint');
-          clearTimeout(hintTimer);
-          hintTimer = setTimeout(() => figure.classList.remove('is-hint'), 1200);
-          return;
-        }
-        e.preventDefault();
-        zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016));
-      },
-      { passive: false, signal }
-    );
-
-    // 双击放大 / 复位
-    figure.addEventListener('dblclick', (e) => {
-      if (vb[2] <= minZoomW * 1.05) {
-        vb = [...baseView];
-        moved = false;
-        layout();
-      } else {
-        zoomAt(e.clientX, e.clientY, 2);
-      }
-    }, { signal });
-
-    // 右下角的 ＋ / － / ↺：滚轮缩放必须按住 Ctrl 才生效，光靠它太不好发现
-    figure.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-map]');
-      if (!btn) return;
-      const rect = canvas.getBoundingClientRect();
-      const midX = rect.left + rect.width / 2;
-      const midY = rect.top + rect.height / 2;
-      if (btn.dataset.map === 'in') zoomAt(midX, midY, 1.6);
-      else if (btn.dataset.map === 'out') zoomAt(midX, midY, 1 / 1.6);
-      else {
-        baseView = baseViewFromBox();
-        aspect = baseView[3] / baseView[2];
-        vb = [...baseView];
-        moved = false;
-        layout();
-      }
-    }, { signal });
-
-    // 拖拽平移 + 双指捏合缩放
-    const pointers = new Map();
-    let lastDist = 0;
-    let dragged = false;
-
-    canvas.addEventListener('pointerdown', (e) => {
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      dragged = false;
-      if (pointers.size === 1) canvas.classList.add('is-grab');
-    }, { signal });
-
-    canvas.addEventListener('pointermove', (e) => {
-      if (!pointers.has(e.pointerId)) return;
-      const prev = pointers.get(e.pointerId);
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      const list = [...pointers.values()];
-      const rect = canvas.getBoundingClientRect();
-
-      if (list.length >= 2) {
-        const dist = Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y);
-        if (lastDist) {
-          const midX = (list[0].x + list[1].x) / 2;
-          const midY = (list[0].y + list[1].y) / 2;
-          zoomAt(midX, midY, dist / lastDist);
-        }
-        lastDist = dist;
-        dragged = true;
-      } else {
-        const dx = e.clientX - prev.x;
-        const dy = e.clientY - prev.y;
-        if (Math.hypot(dx, dy) > 4) {
-          dragged = true;
-          moved = true;
-        }
-        vb[0] -= (dx / rect.width) * vb[2];
-        vb[1] -= (dy / rect.height) * vb[3];
-        clampViewBox();
-        positionPins();
-      }
-    }, { signal });
-
-    function endPointer(e) {
-      pointers.delete(e.pointerId);
-      if (pointers.size < 2) lastDist = 0;
-      if (pointers.size === 0) {
-        canvas.classList.remove('is-grab');
-        updateLabels();
-      }
-    }
-    canvas.addEventListener('pointerup', endPointer, { signal });
-    canvas.addEventListener('pointercancel', endPointer, { signal });
-    canvas.addEventListener('pointerleave', (e) => {
-      if (pointers.size === 1) pointers.delete(e.pointerId);
-    }, { signal });
-
-    // 拖拽后抑制图钉跳转
-    canvas.addEventListener('click', (e) => {
-      if (dragged) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }, { signal });
-
-    // 换视口：重算默认视野比例；用户没手动缩放过就跟着复位，缩放过则只修高度
-    function onResize() {
-      baseView = baseViewFromBox();
-      aspect = baseView[3] / baseView[2];
-      if (!moved) vb = [...baseView];
-      else {
-        vb[3] = vb[2] * aspect;
-        clampViewBox();
-      }
-      layout();
-    }
-    window.addEventListener('resize', onResize, { passive: true, signal });
-    layout();
-
-    live = {
-      figure,
-      dispose() {
-        controller.abort();
-        clearTimeout(labelsTimer);
-        clearTimeout(hintTimer);
-        pointers.clear();
-        canvas.classList.remove('is-grab');
-        figure.classList.remove('is-hint');
-        delete figure.dataset.bound;
-      },
-    };
-  }
-
-  document.addEventListener('astro:before-swap', teardown);
-  document.addEventListener('astro:page-load', boot);
-  boot(); // 兼顾首次加载，幂等检查避免重复绑定。
+  import '@/lib/travel-atlas';
 </script>
 
 <style>
-  .travel-map {
-    position: relative;
-    z-index: 0;
-    width: 100%;
-    height: 460px;
-    margin-bottom: 48px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    overflow: hidden;
-    background: var(--bg);
-    cursor: grab;
-    touch-action: pan-y;
-    user-select: none;
+  .travel-atlas { --map-accent: #a95943; --map-land: #d5cec0; --map-line: #aaa291; margin: 32px 0 64px; }
+  :global([data-theme='dark']) .travel-atlas { --map-accent: #d58b6f; --map-land: #313d40; --map-line: #617074; }
+  .tm-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-top: 1px solid var(--list-divider); padding-top: 18px; margin-bottom: 30px; font-size: 12px; color: var(--list-text-muted); letter-spacing: .08em; }
+  .tm-heading-en { margin-left: 16px; font-size: 10px; letter-spacing: .2em; opacity: .65; }
+  .tm-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: clamp(24px, 5vw, 64px); align-items: center; }
+  .tm-stories { min-width: 0; }
+  .tm-story[hidden] { display: none; }
+  .tm-kicker { color: var(--map-accent); font-size: 11px; letter-spacing: .16em; margin-bottom: 6px; }
+  .tm-story h2 { font-size: clamp(28px, 3vw, 38px); font-weight: 400; line-height: 1.5; letter-spacing: .04em; }
+  .tm-coordinates { display: flex; gap: 8px; font-size: 12px; color: var(--list-text-muted); letter-spacing: .03em; margin: 8px 0 24px; font-variant-numeric: tabular-nums; }
+  .tm-coordinates span { opacity: .35; }
+  .tm-photo { display: block; overflow: hidden; aspect-ratio: 10 / 7; background: var(--bg-alt); }
+  .tm-photo:hover, .tm-album:hover, .tm-index a:hover, .tm-pin:hover { transform: none; }
+  .tm-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
+  .tm-photo:hover img { transform: scale(1.025); }
+  .tm-description { color: var(--list-text-muted); font-size: 14px; line-height: 1.8; margin-top: 18px; }
+  .tm-meta { display: flex; gap: 18px; margin-top: 10px; font-size: 12px; color: var(--list-text-muted); font-variant-numeric: tabular-nums; }
+  .tm-album { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; font-size: 14px; color: var(--text); }
+  .tm-album span { font-size: 21px; color: var(--map-accent); }
+  .tm-pagination { border-top: 1px solid var(--list-divider); padding-top: 12px; display: flex; align-items: center; justify-content: space-between; color: var(--list-text-muted); }
+  .tm-page { font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: .12em; }
+  .travel-atlas button { font: inherit; color: inherit; background: transparent; border: 0; cursor: pointer; padding: 0; }
+  .travel-atlas button:focus-visible, .tm-index a:focus-visible, .tm-album:focus-visible, .tm-photo:focus-visible { outline: 1px solid var(--map-accent); outline-offset: 4px; }
+  .tm-pagination button { width: 36px; height: 32px; font-size: 19px; }
+  .tm-pagination button:hover { color: var(--map-accent); }
+  .tm-map { min-width: 0; align-self: stretch; display: flex; flex-direction: column; }
+  .tm-map-head, .tm-map-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; }
+  .tm-map-caption { color: var(--list-text-muted); font-size: 11px; letter-spacing: .06em; }
+  .tm-modes { display: flex; gap: 20px; flex-shrink: 0; }
+  .tm-modes button { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--list-text-muted); padding: 6px 0; border-bottom: 1px solid transparent; }
+  .tm-modes button[aria-pressed='true'] { border-color: var(--map-accent); color: var(--text); }
+  .tm-modes button:disabled { opacity: .35; cursor: default; }
+  .tm-modes svg, .tm-tools svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+  .tm-stage { position: relative; isolation: isolate; flex: 1; min-height: 420px; overflow: hidden; touch-action: pan-y; cursor: grab; user-select: none; }
+  .tm-stage[data-interactive='true'] { touch-action: none; }
+  .tm-stage.is-grabbing { cursor: grabbing; }
+  .tm-stage:focus-visible { outline: 1px solid var(--list-divider); outline-offset: 2px; }
+  .tm-globe, .tm-flat, .tm-pins { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .tm-globe { display: none; }
+  .tm-flat { pointer-events: none; background: var(--bg-alt); border-radius: 3px; }
+  .travel-atlas[data-mode='globe'] .tm-globe { display: block; }
+  .travel-atlas[data-mode='globe'] .tm-flat { display: none; }
+  .tm-flat :global(svg) { display: block; width: 100%; height: 100%; }
+  .tm-flat :global(.worldmap-land) { fill: var(--map-land); stroke: var(--map-line); stroke-width: .35; vector-effect: non-scaling-stroke; }
+  .tm-flat :global(.worldmap-grid) { fill: none; stroke: var(--map-line); stroke-width: .5; opacity: .18; vector-effect: non-scaling-stroke; }
+  .tm-flat :global(.worldmap-borders) { fill: none; stroke: var(--map-line); stroke-width: .5; opacity: .45; vector-effect: non-scaling-stroke; }
+  .tm-flat :global(.worldmap-rivers) { fill: none; stroke: var(--bg-alt); stroke-width: .65; opacity: .65; vector-effect: non-scaling-stroke; }
+  .tm-flat :global(.worldmap-lakes) { fill: var(--bg-alt); }
+  .tm-pins { pointer-events: none; }
+  .tm-pin { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; display: grid; place-items: center; pointer-events: auto; z-index: 1; transition: none; }
+  .tm-pin[hidden] { display: none; }
+  .tm-pin-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--map-accent); box-shadow: 0 0 0 2px var(--bg); transition: box-shadow .2s; }
+  .tm-pin.is-active { z-index: 4; }
+  .tm-pin.is-active .tm-pin-dot, .tm-pin:hover .tm-pin-dot, .tm-pin:focus-visible .tm-pin-dot { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--map-accent), 0 0 0 7px color-mix(in srgb, var(--map-accent) 12%, transparent); }
+  .tm-pin:focus-visible { outline: none; z-index: 5; }
+  .tm-pin-label { position: absolute; left: 50%; top: 50%; transform: translate(var(--label-x, 14px), var(--label-y, -50%)); font-size: 11px; white-space: nowrap; line-height: 1.5; color: var(--text); text-shadow: 0 1px 3px var(--bg), 0 -1px 3px var(--bg), 1px 0 3px var(--bg), -1px 0 3px var(--bg); }
+  .tm-pin.is-label-hidden .tm-pin-label { visibility: hidden; }
+  .tm-pin.is-label-hidden:hover .tm-pin-label, .tm-pin.is-label-hidden:focus-visible .tm-pin-label { visibility: visible; }
+  .tm-north { position: absolute; top: 20px; left: 18px; display: flex; align-items: center; flex-direction: column; font-size: 10px; line-height: 1.5; color: var(--list-text-muted); pointer-events: none; opacity: .65; }
+  .tm-north span { font-size: 24px; font-weight: 400; }
+  .tm-map-foot { padding-top: 8px; }
+  .tm-instruction { font-size: 11px; letter-spacing: .02em; color: var(--list-text-muted); }
+  .tm-tools { display: flex; gap: 4px; }
+  .tm-tools button { display: grid; place-items: center; width: 34px; height: 34px; font-size: 18px; color: var(--list-text-muted); }
+  .tm-tools button:hover { color: var(--map-accent); }
+  .tm-tools button:disabled { opacity: .3; cursor: default; }
+  .tm-tools .tm-interact { display: none; width: auto; padding: 0 10px; font-size: 11px; }
+  .tm-touch-hint { display: none; }
+  .tm-index { position: static; height: auto; display: flex; flex-wrap: wrap; gap: 8px 30px; background: transparent; margin-top: 30px; padding: 18px 0; border: 0; border-top: 1px solid var(--list-divider); z-index: auto; }
+  .tm-index a { display: flex; align-items: baseline; gap: 8px; padding: 5px 0 8px; font-size: 13px; color: var(--list-text-muted); border-bottom: 1px solid transparent; white-space: nowrap; }
+  .tm-index a span { font-size: 10px; opacity: .55; font-variant-numeric: tabular-nums; }
+  .tm-index a.is-active { color: var(--text); border-color: var(--map-accent); }
+  .travel-atlas:not([data-bound]) .tm-enhanced { visibility: hidden; }
+  @media (hover: none) and (pointer: coarse) {
+    .tm-tools .tm-interact { display: grid; }
+    .tm-interact[aria-pressed='true'] { color: var(--map-accent); }
+    .tm-touch-hint { display: inline; }
+    .tm-desktop-hint { display: none; }
   }
-  .tm-view {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
-  .tm-canvas {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    z-index: 2;
-  }
-  .tm-canvas.is-grab {
-    cursor: grabbing;
-  }
-  .tm-svg {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-  }
-  .tm-svg :global(svg) {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-  .tm-svg :global(.worldmap-land) {
-    fill: var(--border-strong);
-    stroke: none;
-    opacity: 0.65;
-  }
-  .tm-svg :global(.worldmap-grid) {
-    fill: none;
-    stroke: var(--border-strong);
-    stroke-width: 0.6;
-    opacity: 0.45;
-    /* 缩放靠改 viewBox，描边会跟着变粗；non-scaling-stroke 让线宽固定为屏幕像素 */
-    vector-effect: non-scaling-stroke;
-  }
-  /* 国界：一根很淡的发丝线。用 --text 混一点透明，亮色下是淡墨、暗色下是浅灰，
-     两种主题都成立；non-scaling-stroke 保证放大到 14× 也不会变粗成一坨。 */
-  .tm-svg :global(.worldmap-borders) {
-    fill: none;
-    stroke: var(--text);
-    stroke-width: 0.35;
-    opacity: 0.17;
-    vector-effect: non-scaling-stroke;
-  }
-  /* 河流：比国界更淡更细一档，只作为陆地上的纹理，不抢图钉 */
-  .tm-svg :global(.worldmap-rivers) {
-    fill: none;
-    stroke: var(--text);
-    stroke-width: 0.3;
-    opacity: 0.13;
-    vector-effect: non-scaling-stroke;
-  }
-  /* 湖面用页面底色填，看起来就是把陆地挖开；深浅色主题都成立 */
-  .tm-svg :global(.worldmap-lakes) {
-    fill: var(--bg);
-    stroke: var(--border-strong);
-    stroke-width: 0.4;
-    opacity: 0.9;
-    vector-effect: non-scaling-stroke;
-  }
-  /* 海洋名称：跟着地图平移缩放，不可点 */
-  .tm-oceans {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    overflow: hidden;
-    pointer-events: none;
-  }
-  .tm-ocean {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    font-size: 9px;
-    letter-spacing: 0.35em;
-    text-indent: 0.35em;
-    color: var(--text-faint);
-    opacity: 0.8;
-    white-space: nowrap;
-  }
-  /* 缩放按钮 */
-  .tm-tools {
-    position: absolute;
-    right: 6px;
-    bottom: 6px;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-  }
-  .tm-tool {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: none;
-    color: var(--text-muted);
-    font-family: inherit;
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-    transition: color 0.2s ease, background 0.2s ease;
-  }
-  .tm-tool:hover:not(:disabled) {
-    color: var(--text);
-    background: color-mix(in srgb, var(--text) 6%, transparent);
-  }
-  .tm-tool:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-  .tm-tool svg {
-    width: 13px;
-    height: 13px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-  .tm-pin {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: var(--text);
-    text-decoration: none;
-  }
-  .tm-pin-dot {
-    position: relative;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #c0392b;
-    border: 2.5px solid var(--bg);
-    box-shadow: 0 0 0 3px color-mix(in srgb, #c0392b 28%, transparent);
-  }
-  .tm-pin--latest .tm-pin-dot::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 2px solid #c0392b;
-    animation: tm-breathe 2.2s ease-out infinite;
-    pointer-events: none;
-  }
-  @keyframes tm-breathe {
-    0% {
-      transform: scale(0.8);
-      opacity: 1;
-    }
-    70% {
-      transform: scale(2.4);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(2.4);
-      opacity: 0;
-    }
+  @media (max-width: 760px) {
+    .tm-layout { grid-template-columns: 1fr; gap: 24px; }
+    .tm-map { grid-row: 1; }
+    .tm-stage { min-height: 340px; height: 340px; flex: auto; }
+    .tm-map-caption { display: none; }
+    .tm-map-head { justify-content: flex-end; }
+    .tm-stories { padding-top: 24px; border-top: 1px solid var(--list-divider); }
+    .tm-story { display: grid; grid-template-columns: minmax(0, 1fr) 42%; column-gap: 20px; align-content: start; }
+    .tm-kicker, .tm-story h2, .tm-coordinates, .tm-description, .tm-meta { grid-column: 1; }
+    .tm-story h2 { font-size: 26px; }
+    .tm-photo { grid-column: 2; grid-row: 1 / 7; height: 100%; min-height: 160px; aspect-ratio: auto; }
+    .tm-coordinates { flex-wrap: wrap; gap: 0 5px; font-size: 11px; margin: 6px 0 0; }
+    .tm-description { font-size: 13px; margin-top: 12px; }
+    .tm-meta { flex-wrap: wrap; gap: 0 10px; margin-top: 8px; font-size: 11px; }
+    .tm-album { grid-column: 1 / -1; padding: 18px 0 12px; }
+    .tm-index { gap: 6px 22px; margin-top: 22px; }
+    .tm-heading { margin-bottom: 8px; }
+    .tm-heading-en { margin-left: 8px; font-size: 9px; }
+    .travel-atlas { margin-bottom: 40px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .tm-pin--latest .tm-pin-dot::after {
-      animation: none;
-    }
-  }
-  .tm-label {
-    margin-top: 6px;
-    font-size: 12px;
-    line-height: 1.2;
-    color: var(--text);
-    white-space: nowrap;
-    text-shadow: 0 1px 2px var(--bg);
-  }
-  /* 被挤到图钉上方的标签 */
-  .tm-pin.is-label-above .tm-label {
-    order: -1;
-    margin-top: 0;
-    margin-bottom: 6px;
-  }
-  /* 碰撞检测判定会互相压住的标签先藏起来，指到／聚焦时再露出来 —— 不这样的话
-     像青岛这种和「泰安＆淄博」挨得近的地点，名字就永远看不到了 */
-  .tm-pin.is-label-hidden .tm-label {
-    opacity: 0;
-  }
-  .tm-pin.is-label-hidden:hover .tm-label,
-  .tm-pin.is-label-hidden:focus-visible .tm-label {
-    opacity: 1;
-  }
-  .tm-hint {
-    position: absolute;
-    left: 50%;
-    bottom: 12px;
-    transform: translateX(-50%);
-    z-index: 3;
-    font-size: 12px;
-    color: var(--text-muted);
-    background: var(--surface);
-    padding: 4px 10px;
-    border-radius: 999px;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    pointer-events: none;
-    white-space: nowrap;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  }
-  .travel-map.is-hint .tm-hint {
-    opacity: 1;
-  }
-  @media (max-width: 768px) {
-    .travel-map {
-      width: 100%;
-      height: 320px;
-    }
+    .tm-photo img, .tm-pin-dot { transition: none; }
   }
 </style>
