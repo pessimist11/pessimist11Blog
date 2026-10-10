@@ -1,0 +1,40 @@
+---
+import albedoUrl from '../assets/moon/lroc-albedo.webp?url';
+
+// 静态月面和浮尘在 WebGL 尚未就绪时也能呈现完整按钮。
+const dust = Array.from({ length: 120 }, (_, index) => {
+  const angle = index * Math.PI * (3 - Math.sqrt(5));
+  const radius = 15.5 + (index * 0.754877666 % 1) * 2.8;
+  return {
+    x: 21 + Math.cos(angle) * radius,
+    y: 21 + Math.sin(angle) * radius,
+    radius: 0.16 + (index * 0.569840296 % 1) * 0.14,
+    opacity: 0.16 + (index * 0.618033989 % 1) * 0.28,
+  };
+});
+---
+
+<button
+  class="theme-toggle"
+  id="themeToggle"
+  type="button"
+  aria-label="切换为深色主题"
+  aria-pressed="false"
+  title="切换为深色主题"
+  transition:persist="theme-toggle"
+>
+  <span class="theme-moon" data-theme-moon aria-hidden="true" style={`--moon-texture: url("${albedoUrl}")`}>
+    <span class="theme-moon-fallback">
+      <span class="theme-moon-surface"></span>
+      <svg viewBox="0 0 42 42" focusable="false" aria-hidden="true">
+        {dust.map(point => <circle cx={point.x} cy={point.y} r={point.radius} opacity={point.opacity} />)}
+      </svg>
+    </span>
+  </span>
+</button>
+
+<script>
+  import { initThemeMoon } from '@/lib/theme-moon';
+  initThemeMoon();
+  document.addEventListener('astro:page-load', initThemeMoon);
+</script>

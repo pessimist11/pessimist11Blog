@@ -1,5 +1,6 @@
 ---
 import '@/styles/global.css';
+import ThemeToggle from '@/components/ThemeToggle.astro';
 import { ClientRouter } from 'astro:transitions';
 import { readFileSync } from 'node:fs';
 
@@ -105,23 +106,30 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
           return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
 
+        function syncToggle(toggle, theme) {
+          const label = theme === 'dark' ? '切换为浅色主题' : '切换为深色主题';
+          toggle.setAttribute('aria-label', label);
+          toggle.setAttribute('aria-pressed', String(theme === 'dark'));
+          toggle.title = label;
+        }
+
         function applyTheme() {
           const t = storedTheme() || systemTheme();
           document.documentElement.dataset.theme = t;
           const toggle = document.getElementById('themeToggle');
-          if (toggle) toggle.textContent = t === 'dark' ? '●' : '○';
+          if (toggle) syncToggle(toggle, t);
         }
 
         applyTheme();
 
         // 切换按钮：事件委托，View Transitions 换页后依然可用
         document.addEventListener('click', (e) => {
-          const toggle = e.target.closest('#themeToggle');
+          const toggle = e.target instanceof Element ? e.target.closest('#themeToggle') : null;
           if (!toggle) return;
           const isDark = document.documentElement.dataset.theme === 'dark';
           const next = isDark ? 'light' : 'dark';
           document.documentElement.dataset.theme = next;
-          toggle.textContent = next === 'dark' ? '●' : '○';
+          syncToggle(toggle, next);
           try {
             localStorage.setItem(KEY, next);
           } catch {}
@@ -129,6 +137,9 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
 
         // View Transitions 换页后 html 会被替换，需重新应用主题
         document.addEventListener('astro:page-load', applyTheme);
+        document.addEventListener('astro:before-swap', (event) => {
+          event.newDocument.documentElement.dataset.theme = storedTheme() || systemTheme();
+        });
 
         // 未手动选择过主题时，跟随系统实时切换
         matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -181,7 +192,7 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
           <a href="/fu/">馥</a>
           <a href="/works/">作品</a>
           <a href="/about/">关于</a>
-          <button class="theme-toggle" id="themeToggle" aria-label="切换主题">○</button>
+          <ThemeToggle />
         </div>
       </div>
     </nav>

@@ -159,24 +159,75 @@ nav {
   transform: scaleX(1);
 }
 
+/* 导航中的月面、浮尘与主题切换。 */
 .theme-toggle {
-  background: none;
+  --theme-paper: #ffffff;
+  appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: var(--text-muted);
-  font-size: 12px;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.25s ease, border-color 0.25s ease;
 }
 
-.theme-toggle:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
+[data-theme="dark"] .theme-toggle { --theme-paper: #1a1a1a; }
+.theme-toggle:hover { color: var(--text); }
+.theme-toggle:active { transform: scale(0.96); }
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+}
+
+.theme-moon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  pointer-events: none;
+}
+
+.theme-moon-fallback,
+.theme-moon canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.theme-moon-fallback { display: grid; place-items: center; }
+.theme-moon-surface {
+  width: 64%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--moon-texture) 26% 50% / 200% 100% #ddd;
+  box-shadow: inset -3px -1px 5px #0004;
+  opacity: 0.6;
+}
+.theme-moon-fallback svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+.theme-moon canvas { display: block; }
+.theme-moon[data-renderer="three"] .theme-moon-fallback { visibility: hidden; }
+.theme-moon[data-renderer="fallback"] canvas { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle { transition: none; }
+  .theme-toggle:active { transform: none; }
 }
 
 /* Main */
@@ -824,4 +875,12 @@ footer {
 
 [data-theme="dark"] .watermark {
   color: rgba(255, 255, 255, 0.018);
+}
+
+/* 44px 的月亮按钮在窄屏上保留完整触控区域。 */
+@media (max-width: 480px) {
+  .nav-inner { padding: 0 12px; gap: 8px; }
+  .nav-title { font-size: 14px; letter-spacing: 0.06em; }
+  .nav-links { gap: 8px; }
+  .nav-links a { font-size: 13px; }
 }
