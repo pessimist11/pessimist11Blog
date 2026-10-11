@@ -300,6 +300,7 @@ function boot() {
   const stage = cover?.querySelector<HTMLElement>('[data-lunar-stage]');
   const art = stage?.querySelector<HTMLElement>('.cover-art');
   const photoImage = stage?.querySelector<HTMLImageElement>('.cover-photo img');
+  const photoCaption = stage?.querySelector<HTMLElement>('[data-photo-caption]');
   const cue = stage?.querySelector<HTMLElement>('.cover-cue');
   const nav = document.querySelector<HTMLElement>('nav[data-home-nav]');
   if (live?.canvas === canvas) return;
@@ -422,6 +423,10 @@ function boot() {
     uniforms.uProgress.value = progress;
     moon.visible = progress < 0.88;
     const photoReady = uniforms.uPhotoReady.value > 0;
+    // 入口只在完整照片呈现后可见、可聚焦；减少动态效果时照片独立展示。
+    const albumLinkReady = motion.matches || progress >= 0.98;
+    cover!.toggleAttribute('data-photo-link-ready', albumLinkReady);
+    if (photoCaption) photoCaption.inert = !albumLinkReady;
     uniforms.uPhotoScale.value = 0.9 + ease(0.58, 0.98, progress) * 0.1;
     photograph.visible = photoReady && progress > 0.5;
     cover!.style.setProperty('--lunar-photo', String(photoReady ? ease(0.94, 0.98, progress) : ease(0.68, 0.98, progress)));
@@ -521,6 +526,8 @@ function boot() {
     cover!.style.removeProperty('--lunar-photo');
     cover!.style.removeProperty('--lunar-grain');
     if (cue) cue.inert = false;
+    if (photoCaption) photoCaption.inert = false;
+    cover!.removeAttribute('data-photo-link-ready');
     delete cover!.dataset.photoReady;
     if (nav) { delete nav.dataset.heroTone; nav.style.removeProperty('--hero-photo'); }
   }
