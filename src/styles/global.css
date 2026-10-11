@@ -27,12 +27,12 @@
   --bg-alt: #1c1c1c;
   --surface: #111111;
   --text: #e8e8e8;
-  --text-muted: #aaa7a1;
+  --text-muted: #b5b1aa;
   --text-faint: #666666;
   --border: #2a2a2a;
   --border-strong: #404040;
   --list-divider: #3d3933;
-  --list-text-muted: #bbb3a8;
+  --list-text-muted: #c0b9ae;
   --accent: #e8e8e8;
   --accent-hover: #aaaaaa;
 }
@@ -71,12 +71,11 @@ a {
   color: inherit;
   text-decoration: none;
   text-underline-offset: 0.2em;
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 a:hover {
   color: var(--text-muted);
-  transform: scale(1.04);
 }
 
 img {
@@ -284,8 +283,12 @@ main {
 .home-section {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 100px 28px;
+  padding: 48px 28px;
 }
+
+/* 给摄影到文字的衔接保留呼吸空间，文字栏目之间使用更紧凑的节奏。 */
+.cover + .home-section { padding-top: 80px; }
+.home-section:last-of-type { padding-bottom: 72px; }
 
 /* 署名只在首页这一处随内容出现，阅读时不再固定穿过正文。 */
 .home-section--signed {
@@ -296,8 +299,9 @@ main {
 /* 全部链接 */
 .more-link {
   display: block;
+  min-height: 44px;
   font-size: 21px;
-  color: var(--text-muted);
+  color: var(--list-text-muted);
   letter-spacing: 0.02em;
   margin-top: 18px;
   text-align: right;
@@ -306,11 +310,10 @@ main {
 
 .more-link:hover {
   color: var(--text);
-  transform: scale(1.04);
 }
 
 .home-section-heading {
-  margin-bottom: 36px;
+  margin-bottom: 24px;
 }
 
 .home-section-en {
@@ -379,7 +382,12 @@ main {
 }
 
 .magazine-item a:hover {
-  transform: scale(1.04);
+  color: var(--text);
+}
+
+.magazine-item a:focus-visible, .more-link:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 5px;
 }
 
 .magazine-desc {
@@ -494,7 +502,7 @@ main {
 .section-intro {
   font-size: 20px;
   font-weight: 400;
-  color: var(--text-faint);
+  color: var(--list-text-muted);
   margin-bottom: 40px;
   max-width: var(--content-width);
 }
@@ -508,7 +516,7 @@ main {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.2em;
-  color: var(--text-faint);
+  color: var(--list-text-muted);
   margin-bottom: 18px;
 }
 
@@ -540,7 +548,6 @@ main {
 
 .back-link:hover {
   color: var(--text);
-  transform: scale(1.04);
 }
 
 .article-header {
@@ -567,7 +574,7 @@ main {
 
 .article-meta {
   font-size: 14px;
-  color: var(--text-faint);
+  color: var(--list-text-muted);
 }
 
 .article-description {
@@ -781,7 +788,6 @@ footer {
 
 .footer-right a:hover {
   color: var(--text);
-  transform: scale(1.04);
 }
 
 /* Responsive */
@@ -805,8 +811,11 @@ footer {
   }
 
   .home-section {
-    padding: 80px 18px;
+    padding: 32px 18px;
   }
+
+  .cover + .home-section { padding-top: 48px; }
+  .home-section:last-of-type { padding-bottom: 48px; }
 
   .page-wrap {
     padding: 60px 18px;
