@@ -8,8 +8,9 @@
     "gallery": "node scripts/optimize-gallery.mjs",
     "prebuild": "npm run fonts && npm run gallery",
     "dev": "node scripts/build-fonts.mjs && node scripts/optimize-gallery.mjs && astro dev",
-    "build": "node scripts/build-fonts.mjs && node scripts/optimize-gallery.mjs && astro build",
-    "preview": "astro preview"
+    "build": "astro build",
+    "preview": "astro preview",
+    "worldmap": "node scripts/build-worldmap.mjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",

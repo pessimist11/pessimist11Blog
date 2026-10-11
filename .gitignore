@@ -8,3 +8,9 @@ public/fonts/
 .DS_Store
 *.local
 .claude/
+
+# 本地配置与视觉验收产物
+.env
+.env.*
+!.env.example
+.moon-preview/

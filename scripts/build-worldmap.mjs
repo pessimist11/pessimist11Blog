@@ -1,27 +1,16 @@
-// 生成自建世界地图 SVG（等距圆柱投影，2000×1000，viewBox 2:1）
-// 数据源：Natural Earth 110m（world-atlas，公共领域）
-//
-// 手动运行：node scripts/build-worldmap.mjs [容差] [最小岛尺寸] [输出路径]
-// 产物 src/assets/worldmap.svg 会以 ?raw 内联进 /zhen/ 的 HTML，所以这个文件的
-// 每一个字节都直接算进页面体积 —— 它是那一页 HTML 的 86%，优化它就是在优化页面。
-//
-// 三处优化（都建立在「显示尺寸」这个前提上）：
-//   1. 坐标取整。地图在桌面端被等比放进 1080×460 的容器，实际渲染约 920×460，
-//      也就是 1 CSS px ≈ 2.17 个 viewBox 单位。整数坐标的最大误差 0.5 单位
-//      ≈ 0.23 px，肉眼不可见；原来保留 1 位小数是比需要的精细 20 倍以上。
-//   2. Douglas-Peucker 抽稀。容差同样按单位算，默认 0.8 单位 ≈ 0.37 px，
-//      低于「不管怎么抽都看不出来」的那条线。
-//   3. 隐式 lineto（`M x y x y ...`）＋ 去掉退化环：每个点省一个 L，重复点去掉。
+// 生成地球与平面视图共用的 SVG（等距圆柱投影，2000×1000）。
+// 陆地与国界：Natural Earth 1:10m；湖泊与河流：1:50m。数据与来源见 data/README.md。
+// 用法：npm run worldmap -- [容差] [最小岛尺寸] [输出路径]
+// 坐标保留一位小数，Douglas-Peucker 抽稀后以隐式 lineto 输出；
+// 日期变更线附近轮廓展开并补平移副本，绕极点的环沿极点闭合。
+// 产物内联进 /zhen/ 并用来生成地球纹理，维护精度时同时关注页面体积。
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { feature, mesh } from 'topojson-client';
 
 const W = 2000;
 const H = 1000;
-// 陆地与国界都用 1:50m 数据（60,629 点，是 1:110m 的 12 倍），轮廓细节明显更足。
-// 来源：world-atlas@2 的 countries-50m.json（Natural Earth 派生，公有领域，与仓库里
-// 原来那份 110m 同源）。它同时含 land 与 countries 两个对象，所以一份文件够用：
-// 陆地填充取 land，国界描边取 countries 的「内部边界」。
+// 同一份 TopoJSON 提供 land 填充轮廓与 countries 内部国界。
 const DATA = path.resolve('scripts/data/countries-10m.json');
 
 // 默认值；可用命令行覆盖以便对比不同激进程度
@@ -40,8 +29,7 @@ const LINE_TOLERANCE = 0.8;
 // 河流另外按 scalerank ≤ 4 筛掉了小支流：全量 462 条会多花一倍体积，而且在 1000px 宽的图上只是噪点
 const LAKES = path.resolve('scripts/data/lakes-50m.json');
 const RIVERS = path.resolve('scripts/data/rivers-50m.json');
-// 湖的阈值比岛更严（3 单位 ≈ 默认缩放下 6px）：比这更小的湖在浅色底上就是一个个白点，
-// 看着像纸的瑕疵而不是湖。50m 湖泊共 465 环，卡在 3 会留下 285 个还算认得出的湖。
+// 湖泊使用稍高的最小跨度，过滤显示尺寸下过小的湖面。
 const LAKES_MIN_SPAN = 3;
 // 湖的形状简单，容差可以比海岸线松
 const LAKES_TOLERANCE = 0.8;
@@ -52,9 +40,7 @@ const topo = JSON.parse(await readFile(DATA, 'utf8'));
 const OBJECT = 'land';
 const geo = feature(topo, topo.objects[OBJECT]);
 
-// 保留 1 位小数（0.1 单位）。最大缩放下 1 单位 ≈ 21 CSS px，取整等于把顶点吸附到
-// 21px 的格子上 —— 数据给得再多也还是台阶感；0.1 单位 ≈ 2px，肉眼就顺了。
-// 用 Number(toFixed(1)) 而不是字符串，整数坐标不会被写成 "1234.0"。
+// 坐标保留一位小数，避免放大后海岸线出现整数取整的台阶。
 const project = ([lng, lat]) => [
   Number((((lng + 180) / 360) * W).toFixed(1)),
   Number((((90 - lat) / 180) * H).toFixed(1)),
@@ -133,41 +119,29 @@ function dedupe(points) {
 }
 
 /**
- * 把跨 180° 的环展开成连续坐标。
- *
- * 但「跨接缝的跳变」有两种，必须分开处理，否则一定出错：
- *  (a) 真的绕过 180°（两端不在图幅边缘）→ 必须展开，否则 Z 闭合会拉出一条横贯全图的
- *      斜线（110m 的楚科奇就这样画出过一块从楚科奇斜切回非洲的假陆地）；
- *  (b) 数据本来就在图幅边缘切断（两端都正好落在 x=0/W，或整段贴在上下边界上）→
- *      那条边本身就是沿图幅边界的闭合边，要原样保留。展开反而会把整块大陆推出画布：
- *      50m 数据里亚欧、非洲、北美都是这种切断环，展开后 x 会漂到 −1097，整块大陆消失。
+ * 在连续的经度空间展开多边形。±180° 是同一条经线；即使两端坐标恰好
+ * 落在图幅边缘，也不能直接跨整张图相连（斐济和北极岛屿会因此产生横线）。
+ * 超出图幅的部分由 buildPolygonLayer 的平移副本补到另一侧。
  */
 function unroll(points) {
+  if (!points.length) return [];
   const out = [points[0]];
   let offset = 0;
   for (let i = 1; i < points.length; i++) {
     const prev = out[out.length - 1];
-    const y = points[i][1];
     let x = points[i][0] + offset;
+    while (x - prev[0] > W / 2) { offset -= W; x -= W; }
+    while (prev[0] - x > W / 2) { offset += W; x += W; }
+    out.push([x, points[i][1]]);
+  }
 
-    const atVerticalEdge = (v) => Math.min(Math.abs(v), Math.abs(v - W)) <= 1;
-    const isSeamJump = Math.abs(x - prev[0]) > W / 2;
-    const isBorderClosure =
-      (atVerticalEdge(prev[0]) && atVerticalEdge(x)) ||
-      (Math.abs(y - prev[1]) <= 1 && (y <= 1 || y >= H - 1));
-
-    if (isSeamJump && !isBorderClosure) {
-      let guard = 0;
-      while (x - prev[0] > W / 2 && guard++ < 4) {
-        offset -= W;
-        x -= W;
-      }
-      while (prev[0] - x > W / 2 && guard++ < 4) {
-        offset += W;
-        x += W;
-      }
-    }
-    out.push([x, y]);
+  // 围绕极点一周的环（南极洲）展开后首尾相差一整个图幅。沿极点闭合，
+  // 避免 Z 在海岸之间连出横线；球面上的这条图幅边界会收敛为同一个极点。
+  const first = out[0], last = out[out.length - 1];
+  if (Math.abs(last[0] - first[0]) > W / 2) {
+    const pole = out.reduce((sum, point) => sum + point[1], 0) / out.length > H / 2 ? H : 0;
+    const wrappedFirstX = first[0] + Math.round((last[0] - first[0]) / W) * W;
+    out.push([wrappedFirstX, first[1]], [wrappedFirstX, pole], [first[0], pole]);
   }
   return out;
 }
@@ -215,8 +189,7 @@ function buildPolygonLayer(rings, minSpan, tolerance) {
     stat.keptRings++;
     stat.keptPoints += simplified.length;
 
-    // 展开后越过图幅的环（楚科奇那一小片，lng 180 以东），在图另一侧补一份平移副本，
-    // 否则地图左右边缘会各缺一小块陆地。只有极少数环需要，代价很小。
+    // 跨过图幅边缘的岛屿在另一侧补平移副本，保留日期变更线两侧轮廓。
     let minX = Infinity;
     let maxX = -Infinity;
     for (const [x] of simplified) {
@@ -309,9 +282,7 @@ const borders = buildLineLayer(
   mesh(topo, topo.objects.countries, (a, b) => a !== b).coordinates,
   LINE_TOLERANCE,
 );
-// 湖泊：Natural Earth 110m（24 个要素：五大湖、贝加尔湖、维多利亚湖等）。
-// 没有这一层的话，这些湖会被 land 图层当成陆地填掉 —— 110m 的 land 只描海岸线，不挖湖。
-// 注意它不含里海（里海在 land 图层里本来就是洞，是对的），也不含青海湖（110m 精度不够）。
+// 湖泊：1:50m 独立图层，以湖面颜色填充陆地中的内陆水域。
 const lakes = buildPolygonLayer(
   ringsOf(JSON.parse(await readFile(LAKES, 'utf8'))),
   LAKES_MIN_SPAN,

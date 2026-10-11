@@ -44,7 +44,7 @@ function boot() {
   let globeTexture: THREE.CanvasTexture | undefined;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 30);
-  const sphere = new THREE.SphereGeometry(1, 96, 64);
+  const sphere = new THREE.SphereGeometry(1, 192, 128);
   const material = new THREE.ShaderMaterial({
     uniforms: { uMap: { value: null } },
     vertexShader: `varying vec2 vUv; varying vec3 vNormal;
@@ -60,17 +60,47 @@ function boot() {
   });
   scene.add(new THREE.Mesh(sphere, material));
   const textureCanvas = document.createElement('canvas');
-  textureCanvas.width = 2048; textureCanvas.height = 1024;
+  textureCanvas.width = 1; textureCanvas.height = 1;
+  let textureUpgradeTimer = 0;
   // 路径只解析一次；主题切换时重绘纹理，不重新加载地图或创建 WebGL 上下文。
   const paths = new Map([...svg.querySelectorAll('path')].map(path => [path.getAttribute('class')!, new Path2D(path.getAttribute('d')!)]));
 
-  function paintGlobe() {
+  // Match the front-facing map to its projected pixel density. Retina zoom
+  // can use 8K; small screens stay within a 4K texture and GPU size limits.
+  function textureResolution() {
+    if (!renderer) return 1;
+    const limit = Math.min(renderer.capabilities.maxTextureSize,
+      matchMedia('(max-width: 760px)').matches ? 4096 : 8192);
+    const distance = orbit.distance / Math.min(1, width / height);
+    const focalLength = height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    const texels = focalLength / Math.max(0.1, distance - 1) *
+      renderer.getPixelRatio() * Math.PI * 2 * 1.15;
+    return Math.min(limit, Math.max(4096, 2 ** Math.ceil(Math.log2(Math.max(1, texels)))));
+  }
+  function scheduleTextureUpgrade() {
+    const resolution = textureResolution();
+    clearTimeout(textureUpgradeTimer);
+    textureUpgradeTimer = 0;
+    if (resolution <= textureCanvas.width) return;
+    // Keep interaction immediate, then redraw vector paths once it settles.
+    textureUpgradeTimer = window.setTimeout(() => {
+      textureUpgradeTimer = 0;
+      if (!disposed && !lost) paintGlobe(resolution);
+    }, 150);
+  }
+  function paintGlobe(resolution = textureCanvas.width) {
     if (!renderer || lost) return;
+    if (textureCanvas.width !== resolution) {
+      // WebGL texture storage is immutable: replace it when dimensions change.
+      globeTexture?.dispose(); globeTexture = undefined;
+      textureCanvas.width = resolution; textureCanvas.height = resolution / 2;
+    }
     const ctx = textureCanvas.getContext('2d')!;
     const dark = document.documentElement.dataset.theme === 'dark';
     const sea = dark ? '#25343b' : '#e9e2d4';
     const land = dark ? '#647e81' : '#bfb7a6';
-    ctx.setTransform(2048 / W, 0, 0, 1024 / H, 0, 0);
+    ctx.setTransform(textureCanvas.width / W, 0, 0, textureCanvas.height / H, 0, 0);
+    ctx.lineJoin = ctx.lineCap = 'round';
     ctx.globalAlpha = 1; ctx.fillStyle = sea; ctx.fillRect(0, 0, W, H);
     const draw = (name: string, fill: string | null, stroke: string | null, alpha: number, lineWidth: number) => {
       const path = paths.get(name);
@@ -87,10 +117,13 @@ function boot() {
     if (!globeTexture) {
       globeTexture = new THREE.CanvasTexture(textureCanvas);
       globeTexture.colorSpace = THREE.SRGBColorSpace;
-      globeTexture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+      globeTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      globeTexture.magFilter = THREE.LinearFilter;
+      globeTexture.minFilter = THREE.LinearMipmapLinearFilter;
       material.uniforms.uMap.value = globeTexture;
     }
     globeTexture.needsUpdate = true;
+    element!.dataset.textureResolution = String(textureCanvas.width);
     requestDraw();
   }
 
@@ -135,6 +168,7 @@ function boot() {
       camera.position.copy(coordinate(orbit.lat, orbit.lng)).multiplyScalar(orbit.distance / Math.min(1, width / height));
       camera.lookAt(0, 0, 0); camera.updateMatrixWorld();
       renderer.render(scene, camera);
+      scheduleTextureUpgrade();
     } else {
       constrainFlat(); svg.setAttribute('viewBox', flat.join(' '));
     }
@@ -206,7 +240,7 @@ function boot() {
     if (atDefault) flat = [...baseFlat];
     else { const cy = flat[1] + flat[3] / 2; flat[3] = flat[2] * height / width; flat[1] = cy - flat[3] / 2; }
     if (renderer && !lost && (width !== oldWidth || height !== oldHeight)) {
-      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75)); renderer.setSize(width, height, false);
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.setSize(width, height, false);
       camera.aspect = width / height; camera.updateProjectionMatrix();
     }
     requestDraw();
@@ -318,7 +352,7 @@ function boot() {
   });
   observer.observe(stage);
   const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(stage);
-  const themeObserver = new MutationObserver(paintGlobe);
+  const themeObserver = new MutationObserver(() => paintGlobe());
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else requestDraw();
@@ -328,7 +362,7 @@ function boot() {
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    paintGlobe(); setMode('globe');
+    resize(); paintGlobe(textureResolution()); setMode('globe');
   } catch {
     modeButtons.find(button => button.dataset.modeButton === 'globe')!.disabled = true;
   }
@@ -337,8 +371,10 @@ function boot() {
   document.fonts.ready.then(() => { if (!disposed) requestDraw(); });
   live = { element, dispose() {
     disposed = true; controller.abort(); cancelAnimationFrame(raf);
+    clearTimeout(textureUpgradeTimer);
     observer.disconnect(); resizeObserver.disconnect(); themeObserver.disconnect();
     pointers.clear(); globeTexture?.dispose(); sphere.dispose(); material.dispose(); scene.clear();
+    textureCanvas.width = textureCanvas.height = 1;
     renderer?.forceContextLoss(); renderer?.dispose();
     delete element.dataset.bound;
   } };

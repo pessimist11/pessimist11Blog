@@ -1,86 +1,113 @@
-# 博客写作与发布规范
+# 项目维护与写作规范
 
-> 本文件供 AI 编码助手（DSH 等）参考，DSH 会自动加载项目根目录的 `AGENTS.md`。
-> 站点：pessimist11 — Astro 5 静态站，部署于 Cloudflare Pages，推送 `master` 即自动构建。
+本文件供 Codex 等编码助手维护本仓库时参考。用户在当前会话中的明确要求优先于本文；已有授权不重复询问。项目为 Astro 5 静态博客，默认分支 `master`，站点地址以 `astro.config.mjs` 为准。
 
-## 一、栏目与目录
+## 一、工作方式与范围
 
-| 栏目 | collection | 目录 | 定位 |
-|------|-----------|------|------|
-| **知** | `zhi` | `src/content/zhi/` | 技术分享：编程、框架、工程实践 |
-| **思** | `si` | `src/content/si/` | 随笔感悟：生活记录与随想 |
-| **帧** | `zhen` | `src/content/zhen/` | 旅行摄影：城市漫步与风光 |
-| **馥** | `fu` | `src/content/fu/` | 香气笔记：香水试香与评价 |
+- 先查看 `git status`、相关代码和配置，再修改。保留已有改动，不重置、不覆盖用户工作。
+- 以当前仓库为事实依据；不要套用其他博客的框架、命令、域名或目录。
+- 用户要求同步其他文件时，检查与变更相关的文档、脚本、页面说明及资源产物；不为凑齐文件数改写文章、批量格式化或升级无关依赖。
+- 已授权的修复、文档更新和本地验证直接完成。提交、push 按用户指令执行；不把 Git push 成功表述为线上部署已完成。
+- 文档只描述已经实现的行为。区分当前功能、建议方案和实际验证，不写未经复测的性能数字。
 
-## 二、新增文章：只加一个 md 文件
+## 二、目录与运行
 
-1. 在 `src/content/<collection>/` 下新建 `<slug>.md`，**无需改动任何代码**。
-2. `slug` 用英文小写 kebab-case（如 `beijing-first-impressions.md`）。中文文件名可用，但 URL 会被百分号编码、不便分享。
-3. 文件名即 URL：`/si/<slug>/`。文件名**不能以下划线 `_` 开头**（Astro 会整份忽略，且构建不报错，极易误判成功）。
-4. 以下页面全部由 `getCollection()` / `getStaticPaths()` 自动生成，不必手工登记：
-   - 列表页 `src/pages/<collection>/index.astro`（按 `pubDate` 倒序、按年份分组）
-   - 详情页 `src/pages/<collection>/[slug].astro`
-   - 首页 `src/pages/index.astro`（各栏目取最新 3 篇）
-   - `rss.xml` 与 sitemap
+| 位置 | 职责 |
+| --- | --- |
+| `src/pages/` | 页面、栏目静态路由、RSS |
+| `src/layouts/BaseLayout.astro` | SEO、字体、导航、主题与页面切换 |
+| `src/layouts/PostLayout.astro` | 文章版式与阅读进度 |
+| `src/styles/global.css` | 全站颜色、排版、列表与通用动效 |
+| `src/lib/lunar.ts` | 首页月球、粒子消散和照片聚合 |
+| `src/lib/theme-moon.ts` | 导航月亮按钮的图形效果 |
+| `src/components/TravelMap.astro`、`src/lib/travel-atlas.ts` | 行旅图集、地球和平面地图 |
+| `src/lib/gallery.ts` | 封面照片路径到 Astro 图片资源的映射 |
+| `scripts/` | 字体、图片、地图生成与 Markdown 图片转换 |
 
-## 三、Frontmatter 规范
-
-Schema 定义在 `src/content/config.ts`。
-
-**必填**
-
-```yaml
-title: '文章标题'          # 用单引号包裹
-pubDate: 2026-09-26        # 必须是不带引号的 YAML 日期！
-```
-
-> ⚠️ `pubDate` 一旦写成 `'2026-09-26'`（带引号），构建会直接失败：
-> `InvalidContentEntryDataError: pubDate: Expected type "date", received "string"`。
-
-**可选**：`description`（一句话摘要，显示在列表里）、`tags`（字符串数组）、`coverImage`、`coverImages`
-**特定栏目才用**：`帧` 用 `coverImage` / `coverImages` / `location` / `camera` / `lat` / `lng`；`馥` 用 `brand` / `notes` / `rating`
-**知 / 思** 用不到封面字段（`PostLayout.astro` 不渲染封面），不必配图。
-
-## 四、改稿规范（核心）
-
-用户提出「帮我改一下某篇文章」时，按以下原则处理。
-
-### 要做的
-
-- **改错别字**：如「该简历」→「改简历」、「呆在北京」→「待在北京」。
-- **修语病**，重点盯这几类高频问题：
-
-| 问题类型 | 反面例子 | 改法 |
-|---|---|---|
-| 句式杂糅 | 「由于北京太大，导致……」<br>「正是因为这次校车让我感受到……」 | 「北京太大，……都……」<br>「也正是这趟校车，让我见识了……」 |
-| 搭配不当 | 「焦虑未来」 | 「对未来感到焦虑」 |
-| 语义冲突 | 「还算是非常不错的」（还算＝勉强） | 「还算不错」 |
-| 缺主语 / 成分残缺 | 「刚到北京南就安排了校车」<br>「甚至超过从家到合肥」 | 「我刚到北京南站，学校就安排了校车」<br>「甚至比从家到合肥还长」 |
-| 量词、专名不规范 | 「这次校车」「刷lc」「agent八股」 | 「这趟校车」「刷 LeetCode」「Agent 八股」 |
-| 并列名词误用逗号 | 「嘈杂的车厢，拥挤的人群就是……」 | 「嘈杂的车厢、拥挤的人群，这就是……」 |
-
-- **顺生硬的书面表达**，保持口语化的第一人称语气，不要改成书面腔或新闻腔。
-- **去掉编辑器硬折行**：md 正文按语义重新分段，一段一个意思，避免一屏一大块。
-- **中英混排加空格**，专有名词用官方大小写（`Agent`、`LeetCode`、`Astro`）。
-
-### 不要做的
-
-- **不改变原意、不添加原文没有的内容**，也不要替作者升华主题或补写感想。
-- **保留作者的个人用语**：例如「羊导」是作者有意为之，指**放养式管理**的导师，**不要**"纠正"成「杨导」。
-- **拿不准的先问**：遇到疑似笔误但不确定的词、或语义含混的句子，先向作者确认，不要擅自改写。
-- 不改标题的引号风格（frontmatter 统一用单引号）。
-- 不为改稿而顺手重排无关文件或改动代码。
-
-## 五、发布流程
+使用 Node.js 22 或更新版本和 npm，依赖按锁文件安装：
 
 ```bash
-npm run build                      # 1. 必须先验证构建通过
-git add "src/content/si/xxx.md"    # 2. 只 add 本次涉及的文件
-git commit -m "新增文章"            # 3. 提交
-git push origin master             # 4. 推送，Cloudflare 自动部署
+npm ci
+npm run dev
+npm run build
+npm run preview
 ```
 
-- **不要用 `git add -A`**：工作区可能残留无关改动（历史上曾因 CRLF/LF 差异产生 27 个文件的假改动），会污染提交。
-- 提交信息沿用仓库风格，带前缀：`feat:` / `docs:` / `chore:`（若作者指定了文案，就照作者说的写）。
-- 行尾符已由根目录 `.gitattributes`（`* text=auto eol=lf`）统一为 LF，无需再手动处理。
-- `dist/`、`.astro/`、`node_modules/`、`public/gallery/` 均已在 `.gitignore` 中，不要提交。
+`dev` 会先生成字体和正文图片，`build` 通过 npm 的 `prebuild` 执行同样的预处理。不要直接用 `astro build` 跳过资源生成，也不要在 `build` 中再次重复预处理。字体或图片源文件修改后，需要重新生成对应资源。
+
+## 三、栏目与文章
+
+| 栏目 | collection | 目录 | 定位 |
+| --- | --- | --- | --- |
+| 知 | `zhi` | `src/content/zhi/` | 技术分享、编程与工程实践 |
+| 思 | `si` | `src/content/si/` | 生活记录与随笔 |
+| 帧 | `zhen` | `src/content/zhen/` | 旅行摄影 |
+| 馥 | `fu` | `src/content/fu/` | 香水试香与评价 |
+
+新增文章通常只需在对应目录添加 Markdown；新增摄影或配图时同时加入源图。不手工登记列表、详情、首页、RSS 或 sitemap。
+
+- 文件名为 slug，推荐英文小写 kebab-case。中文文件名会生成编码 URL；不擅自重命名现有文章，以免改变链接。
+- 文件名不要以下划线 `_` 开头，避免被内容加载忽略。
+- schema 以 `src/content/config.ts` 为准。必填 `title` 和 `pubDate`：
+
+```yaml
+---
+title: '文章标题'
+pubDate: 2026-10-11
+description: '一句话摘要'
+tags: ['随笔']
+---
+```
+
+`pubDate` 必须是不带引号的 YAML 日期，当前 schema 使用 `z.date()`。标题沿用单引号风格。
+
+可选通用字段为 `description`、`tags`、`coverImage`、`coverImages`。帧使用 `location`、`camera`、`lat`、`lng`；馥使用 `brand`、`notes`、`rating`（1–5）。知、思的文章布局不渲染封面，不必为它们配置封面字段。
+
+帧的地图只收录有效坐标，纬度范围 −90 到 90，经度 −180 到 180。照片源文件放 `src/assets/gallery/`，frontmatter 和正文保留 `/gallery/...` 稳定路径；其他正文配图放 `src/assets/images/`，以 `/images/...` 引用。不要把生成图当成源图维护。
+
+## 四、文章改稿
+
+- 修正错别字、语病、搭配和标点，按语义分段，清除编辑器硬折行。
+- 保持原意、第一人称与作者语气，不补写经历、结论、感想或未做过的工作。
+- 中英混排适当加空格，专名使用 `Agent`、`LeetCode`、`Astro` 等正确大小写。
+- 保留作者有意使用的个人表达。例如「羊导」指放养式管理的导师，不改为「杨导」。
+- 疑似笔误或语义不清且会影响原意时，向作者确认；能确定的常规修正直接完成。
+- 不为改稿顺手重排无关文件或修改代码。
+
+## 五、视觉与动画
+
+- 延续纸媒排版、克制分隔线和低对比水印。颜色优先使用 CSS 变量，检查浅色和深色主题；照片、头像保持原始颜色。
+- 首页月亮为真实纹理球面与粒子系统，布局和降级在 `index.astro`，渲染在 `lunar.ts`；导航月亮是独立实例，不混用两者的生命周期。
+- 正常加载时隐藏静态月亮，贴图就绪后显示 WebGL 画面；兜底只在无 JavaScript、无 WebGL 或渲染失败时出现，避免刷新和切页闪烁。
+- 保持桌面 4K、窄屏 2K 月面贴图与匹配的预加载条件，勿让窄屏同时下载全部大贴图。
+- 保留从局部月面到整体消散、照片粒子聚合、完整照片显示的连续衔接，检查顶部渐变与导航文字对比度。
+- 保留 `prefers-reduced-motion`、键盘可用性和触控操作；降级时正文、照片、地图链接仍应可访问。
+- 参考其他网站时复现交互和视觉方向，保留本站内容；第三方贴图和字体保留来源与许可。
+
+## 六、图形资源与地图
+
+- Astro ClientRouter 切页时，初始化挂到 `astro:page-load`，对同一元素保持幂等；`astro:before-swap` 清理旧实例。
+- 清理动画帧、事件监听器、观察器、定时器、几何体、材质、纹理、ImageBitmap 和渲染器。异步贴图回调检查实例是否已销毁。
+- 页面不可见或组件离开视口时暂停动画；主动销毁 WebGL 上下文不应触发全站失败状态。
+- 地球纹理按设备能力和缩放升级，保持窄屏 4K、桌面最高 8K 的限制。改变画布尺寸后重建纹理并释放旧纹理，避免纹理存储尺寸不匹配。
+- 地图陆地和国界用 `scripts/data/countries-10m.json`；湖泊、河流用 1:50m 数据。生成命令为 `npm run worldmap`，参数与默认值见 README。
+- 修改生成逻辑后同时更新 `src/assets/worldmap.svg`。保留精度、岛屿筛选和图层顺序，检查 ±180° 经线跨界、平移副本和极点闭合，防止横贯地图的错误连线。
+- 不自动下载素材，不修改坐标来掩盖投影或轮廓错误。月面贴图处理依据 `src/assets/moon/README.md`。
+
+## 七、验证与文档同步
+
+- 提交前执行 `npm run build` 和 `git diff --check`；功能修改做与影响范围对应的验证，纯文档修改检查路径、命令和事实。
+- 涉及首页、地图、主题或 ClientRouter 时，在浏览器实际运行，检查首次加载、切页后返回、深浅主题、窄屏和必要的降级场景。HTML 标记存在不代表 WebGL 已初始化。
+- 地图修改检查地球与平面视图、缩放旋转、跨界岛屿及大陆完整性；检查控制台中的 JavaScript 和 WebGL 错误。
+- 已通过的检查不无故反复运行；未验证的环境如实说明，不以构建通过代替视觉检查。
+- 更新功能时同步 README、作品页等实际受影响的说明；域名改变同步 `astro.config.mjs`、`robots.txt`、`llms.txt`，核对 canonical、RSS 和 sitemap。
+- 保留资源来源说明。没有项目级 `LICENSE` 时，不把整个仓库宣称为 MIT。
+
+## 八、提交与发布
+
+- 查看 diff，明确列出本次文件再暂存，不使用 `git add -A` 混入缓存、截图或无关改动。
+- 行尾遵循 `.gitattributes` 的 LF 规则；不为本次功能批量改写无关文件。
+- `dist/`、`.astro/`、`node_modules/`、`public/fonts/`、`public/gallery/`、`public/images/`、本地预览截图和 `.env` 不提交。月面源资源、署名字体许可、地图 SVG 和锁文件按实际变更提交。
+- 提交信息沿用 `feat:`、`fix:`、`docs:`、`chore:` 前缀；用户指定提交文案时优先使用。
+- push 前核对分支、远端及提交范围，推送后验证远端提交。出现分支分歧时处理普通合并或变基，不擅自强推、改写历史。
+- Cloudflare Pages 的构建命令为 `npm run build`，输出目录 `dist`。最终反馈说明提交、push 和部署各自的实际状态。

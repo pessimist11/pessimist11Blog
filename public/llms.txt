@@ -22,15 +22,20 @@ pessimist11 是一个基于 Astro 5 静态生成的个人站点，发布技术�
 - 思（THINKING，随笔感悟）：https://pessimist11.pages.dev/si/
   - 生活记录与随想。
 - 帧（TRAVEL，旅行摄影）：https://pessimist11.pages.dev/zhen/
-  - 城市漫步与风光，含世界地图与照片画廊。
+  - 城市漫步与风光，含可切换地球 / 平面视图的交互行旅图集与照片画廊。
 - 馥（SCENT，香气笔记）：https://pessimist11.pages.dev/fu/
   - 香水试香与评价。
 
 ## 其他页面
 
+- 作品：https://pessimist11.pages.dev/works/
 - 关于：https://pessimist11.pages.dev/about/
+
+## 浏览体验
+
+首页以自转月球与手写署名呈现，滚动时月面粒子逐渐消散并聚合成精选摄影画面。
+导航中的月亮按钮切换浅色、深色主题；站点提供响应式图片、Lightbox、RSS 与静态内容回退。
 
 ## 说明
 
-本文件为 llms.txt 站点导览，供 AI 引擎理解网站结构。站点内容全部为作者原创，
-如需引用请注明出处。
+本文件为 llms.txt 站点导览，供 AI 引擎理解网站结构。文章与摄影内容引用请注明作者和出处；月面贴图、地图数据与字体另有第三方来源说明。

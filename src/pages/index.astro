@@ -5,6 +5,10 @@ import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import { galleryImage } from '@/lib/gallery';
 import type { ImageMetadata } from 'astro';
+import albedoSmallUrl from '../assets/moon/lroc-albedo.webp?url';
+import albedoLargeUrl from '../assets/moon/lroc-albedo-4k.webp?url';
+import normalSmallUrl from '../assets/moon/lola-normal-2k.webp?url';
+import normalLargeUrl from '../assets/moon/lola-normal-4k.webp?url';
 
 const zhi = await getCollection('zhi');
 const si = await getCollection('si');
@@ -32,11 +36,17 @@ function slug(id: string) {
   return id.replace(/\.(md|mdx)$/, '');
 }
 
-// 封面题句（与入场页一致）
+// 封面题句：沿用本站标语。
 const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
 ---
 
 <BaseLayout title="首页" immersiveHeader>
+  <Fragment slot="head">
+    <link rel="preload" as="image" href={albedoSmallUrl} media="(max-width: 700px)" crossorigin="anonymous" fetchpriority="high" />
+    <link rel="preload" as="image" href={normalSmallUrl} media="(max-width: 700px)" crossorigin="anonymous" fetchpriority="high" />
+    <link rel="preload" as="image" href={albedoLargeUrl} media="(min-width: 701px)" crossorigin="anonymous" fetchpriority="high" />
+    <link rel="preload" as="image" href={normalLargeUrl} media="(min-width: 701px)" crossorigin="anonymous" fetchpriority="high" />
+  </Fragment>
   <!-- 月面粒子剥离为云带，再带着照片的色彩聚合成像。 -->
   <section class="cover" data-cover aria-label="月与浮尘">
     <div class="cover-stage" data-lunar-stage>
@@ -246,6 +256,12 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       transition: opacity 0.7s ease;
     }
     :global([data-theme='dark']) .cover-fallback { opacity: 0.85; }
+    /* Only reveal the rendered moon during normal startup. The static globe
+       remains available when JavaScript or WebGL cannot run. */
+    :global(.js) .cover:not([data-renderer='fallback']) .cover-fallback {
+      opacity: 0;
+      visibility: hidden;
+    }
     .cover[data-renderer='three'] .cover-fallback { opacity: 0; }
     .cover[data-renderer='fallback'] { height: auto; }
     .cover[data-renderer='fallback'] .cover-photo-anchor { top: var(--lunar-stage-height); }

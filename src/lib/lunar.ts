@@ -170,12 +170,14 @@ const particleVertex = /* glsl */ `
 
     float sun = max(dot(normal, uLight), 0.0);
     float pigment = clamp(0.18 + pow(1.0 - albedo, 1.3) * 0.76 + pow(1.0 - sun, 1.7) * 0.12, 0.1, 0.88);
-    vec3 paperGrain = mix(uPaper, uShade, pigment);
+    // Paper needs darker pigment than the lunar surface to keep tiny grains
+    // legible against its bright background, including the first local peel.
+    vec3 paperGrain = mix(uPaper, uShade, clamp(0.58 + pigment * 0.48, 0.62, 0.95));
     vec3 inkGrain = mix(uShade, uHighlight, clamp((0.32 + albedo * 0.76) * (0.44 + 0.56 * pow(sun, 0.38)), 0.07, 1.0));
     vColor = mix(paperGrain, inkGrain, uDark);
     float facing = mix(smoothstep(-0.05, 0.15, normal.z), 1.0, travel);
     float windFade = smoothstep(0.0, 0.07, wind) * (1.0 - smoothstep(0.88, 1.0, wind));
-    vAlpha = smoothstep(0.0, 0.42, release) * 0.82 * facing;
+    vAlpha = smoothstep(0.0, 0.42, release) * mix(0.96, 0.82, uDark) * facing;
     vAlpha *= mix(1.0, windFade, release * (1.0 - travel));
     if (uPhotoReady > 0.5) {
       float arrival = photoArrival(aSeed.xy, uProgress);
@@ -191,7 +193,7 @@ const particleVertex = /* glsl */ `
       vAlpha *= 1.0 - smoothstep(0.77, 0.99, uProgress);
     }
     gl_Position = projectionMatrix * modelViewMatrix * vec4(point, 1.0);
-    gl_PointSize = (0.72 + aSeed.y * 0.5) * uDpr;
+    gl_PointSize = mix(1.0 + aSeed.y * 0.55, 0.72 + aSeed.y * 0.5, uDark) * uDpr;
     if (vAlpha < 0.002) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
   }
 `;

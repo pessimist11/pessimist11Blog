@@ -1,4 +1,4 @@
-# pessimist11.net — 欢迎搜索引擎与 AI 引擎抓取公开内容并注明出处
+# pessimist11 — 欢迎搜索引擎与 AI 引擎抓取公开内容并注明出处
 # 给 LLM 的站点导览：https://pessimist11.pages.dev/llms.txt
 
 User-agent: *
