@@ -101,6 +101,46 @@ nav {
   background: #1a1a1a;
 }
 
+/* The homepage photograph runs beneath the header. Its scrim dissolves
+   downward into the image instead of ending at an opaque navigation bar. */
+nav[data-home-nav][data-hero-tone] {
+  background: transparent;
+  border-bottom-color: transparent;
+}
+nav[data-home-nav][data-hero-tone]::before,
+nav[data-home-nav][data-hero-tone]::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: clamp(150px, 23vh, 240px);
+  pointer-events: none;
+}
+nav[data-home-nav][data-hero-tone]::before {
+  opacity: calc(1 - var(--hero-photo, 0));
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bg) 92%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 64%, transparent) 32%,
+    color-mix(in srgb, var(--bg) 20%, transparent) 65%,
+    transparent 100%);
+}
+nav[data-home-nav][data-hero-tone]::after {
+  opacity: var(--hero-photo, 0);
+  background: linear-gradient(180deg,
+    rgb(10 12 15 / 78%) 0%,
+    rgb(10 12 15 / 52%) 32%,
+    rgb(10 12 15 / 16%) 65%,
+    transparent 100%);
+}
+nav[data-home-nav][data-hero-tone] .nav-title {
+  color: color-mix(in srgb, var(--text), #f3f0e9 calc(var(--hero-photo, 0) * 100%));
+}
+nav[data-home-nav][data-hero-tone] .nav-links a {
+  color: color-mix(in srgb, var(--text-muted), #f3f0e9 calc(var(--hero-photo, 0) * 100%));
+}
+nav[data-home-nav][data-hero-tone='photo'] .nav-links a:hover { color: #fff; }
+nav[data-home-nav][data-hero-tone='photo'] .theme-toggle { border-color: rgb(243 240 233 / 25%); }
+
 .nav-inner {
   max-width: var(--max-width);
   height: 100%;
@@ -237,6 +277,8 @@ main {
   min-height: calc(100vh - var(--nav-height) - 80px);
   padding-top: var(--nav-height);
 }
+
+.main--immersive { padding-top: 0; }
 
 /* Homepage sections */
 .home-section {

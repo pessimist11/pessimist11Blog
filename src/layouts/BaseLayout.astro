@@ -23,9 +23,10 @@ export interface Props {
   image?: string;
   type?: 'website' | 'article';
   pubDate?: Date;
+  immersiveHeader?: boolean;
 }
 
-const { title, description, image, type = 'website', pubDate } = Astro.props;
+const { title, description, image, type = 'website', pubDate, immersiveHeader = false } = Astro.props;
 
 const siteName = 'pessimist11';
 const siteUrl = Astro.site ?? new URL('https://pessimist11.pages.dev');
@@ -182,7 +183,7 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
     {ogImage && <meta name="twitter:image" content={ogImage} />}
   </head>
   <body>
-    <nav>
+    <nav data-home-nav={immersiveHeader || undefined}>
       <div class="nav-inner">
         <a href="/" class="nav-title">pessimist11</a>
         <div class="nav-links">
@@ -197,7 +198,7 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
       </div>
     </nav>
 
-    <main>
+    <main class:list={{ 'main--immersive': immersiveHeader }}>
       <slot />
     </main>
 

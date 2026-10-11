@@ -18,7 +18,7 @@ const fuPosts = fu.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getT
 const zhenPosts = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 
 // 收集帧文章的所有封面照片，构建时随机打乱
-// 只取横构图：首页大图现在是全宽出血的宽幅裁切（桌面约 2.4:1），
+// 只取横构图：首页大图以全屏宽幅呈现，
 // 竖构图会被裁掉大半，只剩中间一条，观感很差。
 const allPhotos = zhen
   .flatMap(p => (p.data.coverImages?.length ? p.data.coverImages : p.data.coverImage ? [p.data.coverImage] : []))
@@ -36,46 +36,48 @@ function slug(id: string) {
 const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
 ---
 
-<BaseLayout title="首页">
-  <!-- 第一屏：水墨月景封面。往下滚就露出下面的栏目，滚回顶部就又回到这里 -->
-  <section class="cover" data-cover aria-label="封面">
-    <canvas data-lunar aria-hidden="true"></canvas>
-    <div class="cover-grain" aria-hidden="true"></div>
-    <div class="cover-fallback" aria-hidden="true"></div>
+<BaseLayout title="首页" immersiveHeader>
+  <!-- 月面粒子剥离为云带，再带着照片的色彩聚合成像。 -->
+  <section class="cover" data-cover aria-label="月与浮尘">
+    <div class="cover-stage" data-lunar-stage>
+      <div class="cover-art">
+        <div class="cover-fallback" aria-hidden="true"></div>
+        <canvas data-lunar aria-hidden="true"></canvas>
+        <div class="cover-grain" aria-hidden="true"></div>
+        <div class="cover-intro">
+          <h1 class="cover-sig" aria-label="Pessimist"><span>Pessimist</span></h1>
+          <p class="cover-verse">{verse[0]}<br />{verse[1]}</p>
+        </div>
+        <div class="cover-index" aria-hidden="true">知 · 思 · 帧 · 馥</div>
+        <a class="cover-cue" href="#selected-photo">
+          <span>向下探索</span><span aria-hidden="true">↓</span>
+        </a>
+      </div>
+      <div class="cover-photo">
+        <Image
+          src={featuredPhoto}
+          alt="旅途中记录的风景"
+          formats={['avif', 'webp']}
+          widths={[480, 960, 1600]}
+          sizes="100vw"
+          width={1600}
+          loading="eager"
+          decoding="async"
+        />
+      </div>
+    </div>
+    <span id="selected-photo" class="cover-photo-anchor" aria-hidden="true"></span>
     <noscript>
       <style is:inline>
-        .cover-fallback { display: block; }
-        [data-lunar] { display: none; }
+        html:not(.js) .cover { height: auto; }
+        html:not(.js) .cover-stage { position: relative; top: 0; height: auto; min-height: 0; }
+        html:not(.js) .cover-art { position: relative; height: var(--lunar-stage-height); }
+        html:not(.js) .cover-photo { position: relative; height: clamp(260px, 46vw, 600px); }
+        html:not(.js) .cover canvas { display: none; }
+        html:not(.js) .cover-photo-anchor { top: var(--lunar-stage-height); }
       </style>
     </noscript>
-
-    <div class="cover-intro">
-      <h1 class="cover-sig">PESSIMIST11</h1>
-      <p class="cover-verse">
-        {verse[0]}<br />{verse[1]}
-      </p>
-    </div>
-
-    <div class="cover-cue" aria-hidden="true">
-      <span class="cover-cue-arrow">↓</span>
-      <span class="cover-cue-bar"></span>
-    </div>
   </section>
-
-  <div class="feature-photo reveal">
-    <div class="feature-photo-inner">
-      <Image
-        src={featuredPhoto}
-        alt=""
-        formats={['avif', 'webp']}
-        widths={[480, 960, 1600]}
-        sizes="100vw"
-        width={1600}
-        loading="lazy"
-        decoding="async"
-      />
-    </div>
-  </div>
 
   <section class="home-section home-section--signed reveal">
     <div class="watermark" aria-hidden="true">pessimist11</div>
@@ -167,13 +169,55 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
   </section>
 
   <style>
-    /* ── 第一屏：水墨月景封面 ───────────────────────── */
+    @font-face {
+      font-family: 'Caveat';
+      src: url('../assets/fonts/caveat-signature.woff2') format('woff2');
+      font-weight: 400 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
     .cover {
+      --lunar-stage-height: max(480px, 100svh);
       position: relative;
-      height: 100svh;
-      min-height: 540px;
-      overflow: hidden;
+      height: 300svh;
       background: var(--bg);
+    }
+
+    .cover-stage {
+      position: sticky;
+      top: 0;
+      height: var(--lunar-stage-height);
+      overflow: hidden;
+      isolation: isolate;
+      background: var(--bg);
+    }
+
+    .cover-art {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: var(--bg);
+      opacity: var(--lunar-scene, 1);
+      pointer-events: none;
+    }
+    .cover-photo {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .cover[data-renderer='three'] .cover-photo { opacity: var(--lunar-photo, 0); }
+    .cover-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .cover-photo-anchor {
+      position: absolute;
+      top: calc(100% - var(--lunar-stage-height));
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
     }
 
     .cover canvas {
@@ -182,137 +226,127 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       width: 100%;
       height: 100%;
       display: block;
+      opacity: 0;
+      transition: opacity 0.7s ease;
     }
+    .cover[data-renderer='three'] canvas { opacity: 1; }
 
-    /* 纸的纤维质地：叠在月景上，也让无 WebGL 时页面不空 */
+    .cover-fallback {
+      position: absolute;
+      left: 69%;
+      top: 44.5%;
+      width: min(51vw, 59svh);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%) rotate(6deg);
+      border-radius: 50%;
+      background: url('../assets/moon/lroc-albedo.webp') 27% 50% / 200% 100%;
+      box-shadow: inset 24px 5px 42px color-mix(in srgb, var(--bg) 50%, transparent);
+      opacity: 0.47;
+      filter: grayscale(1);
+      transition: opacity 0.7s ease;
+    }
+    :global([data-theme='dark']) .cover-fallback { opacity: 0.85; }
+    .cover[data-renderer='three'] .cover-fallback { opacity: 0; }
+    .cover[data-renderer='fallback'] { height: auto; }
+    .cover[data-renderer='fallback'] .cover-photo-anchor { top: var(--lunar-stage-height); }
+    .cover[data-renderer='fallback'] .cover-stage { position: relative; top: 0; height: auto; min-height: 0; }
+    .cover[data-renderer='fallback'] .cover-art { position: relative; height: var(--lunar-stage-height); }
+    .cover[data-renderer='fallback'] .cover-photo { position: relative; height: clamp(260px, 46vw, 600px); }
+
     .cover-grain {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      opacity: 0.32;
+      opacity: calc(0.11 * var(--lunar-grain, 1));
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.93' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.26' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 160px 160px;
       mix-blend-mode: multiply;
-      background-image:
-        radial-gradient(circle at 18% 26%, rgba(0, 0, 0, 0.025) 0 1px, transparent 1px),
-        radial-gradient(circle at 63% 71%, rgba(0, 0, 0, 0.02) 0 1px, transparent 1px),
-        radial-gradient(circle at 84% 18%, rgba(0, 0, 0, 0.018) 0 1px, transparent 1px);
-      background-size: 7px 7px, 11px 11px, 13px 13px;
     }
-
-    :global([data-theme='dark']) .cover-grain {
-      mix-blend-mode: screen;
-      opacity: 0.18;
-      background-image:
-        radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px),
-        radial-gradient(circle at 63% 71%, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px);
-    }
-
-    /* 无 WebGL 时的兜底月亮 */
-    .cover-fallback {
-      --moon-base: color-mix(in srgb, var(--text) 5%, var(--bg));
-      --moon-shade: color-mix(in srgb, var(--text) 13%, var(--bg));
-      display: none;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 68vmin;
-      aspect-ratio: 1;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      background:
-        radial-gradient(ellipse at 34% 36%, color-mix(in srgb, var(--text) 6%, transparent) 0 12%, transparent 28%),
-        radial-gradient(ellipse at 65% 62%, color-mix(in srgb, var(--text) 5%, transparent) 0 14%, transparent 32%),
-        radial-gradient(circle at 73% 27%, transparent 0 3%, color-mix(in srgb, var(--text) 5%, transparent) 3.5%, transparent 5%),
-        radial-gradient(circle at 38% 34%, var(--moon-base), var(--moon-shade));
-      box-shadow: 0 0 28px color-mix(in srgb, var(--text) 3%, transparent);
-      opacity: 0.9;
-    }
-
-    :global(html.no-webgl) .cover-fallback { display: block; }
-    :global(html.no-webgl) .cover canvas { display: none; }
-    :global([data-theme='dark']) .cover-fallback {
-      --moon-base: color-mix(in srgb, var(--text) 40%, var(--bg));
-      --moon-shade: color-mix(in srgb, var(--text) 24%, var(--bg));
-    }
+    :global([data-theme='dark']) .cover-grain { mix-blend-mode: screen; opacity: calc(0.075 * var(--lunar-grain, 1)); }
 
     .cover-intro {
-      opacity: var(--lunar-intro, 1);
       position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: min(88vw, 720px);
-      text-align: center;
+      top: 35%;
+      left: 10%;
+      width: 40%;
+      text-align: left;
+      opacity: var(--lunar-intro, 1);
       pointer-events: none;
     }
 
     .cover-sig {
-      margin: 0 0 clamp(18px, 3.4vh, 38px);
-      font-family: 'EB Garamond', 'Noto Serif SC', serif;
-      font-size: clamp(25px, 4.4vw, 46px);
-      font-weight: 400;
-      letter-spacing: 0.24em;
-      text-indent: 0.24em;
+      margin: 0 0 clamp(30px, 6vh, 62px) -0.03em;
+      font-family: 'Caveat', 'EB Garamond', cursive;
+      font-size: clamp(88px, 9.2vw, 144px);
+      font-weight: 600;
+      line-height: 1.04;
+      letter-spacing: -0.035em;
       color: var(--text);
-      clip-path: inset(0 100% 0 0);
-      animation: ink-write 2.4s cubic-bezier(0.16, 0.84, 0.28, 1) 0.3s forwards;
+      transform: rotate(-4deg);
+      transform-origin: left center;
     }
-
-    /* 墨迹自左向右渗出，模拟运笔 */
-    @keyframes ink-write {
-      to { clip-path: inset(0 0 0 0); }
+    .cover-sig span { display: inline-block; }
+    :global(.js) .cover-sig span {
+      clip-path: inset(-20% 100% -20% -5%);
+      animation: signature-write 3.4s cubic-bezier(0.25, 0.45, 0.45, 1) 0.2s forwards;
     }
+    @keyframes signature-write { to { clip-path: inset(-20% -5% -20% -5%); } }
 
     .cover-verse {
       margin: 0;
-      font-size: clamp(14px, 1.4vw, 18px);
-      line-height: 2.1;
-      letter-spacing: 0.12em;
-      color: #6e665e;
-      opacity: 0;
-      animation: cover-rise 1.6s ease 2s forwards;
+      color: var(--text-muted);
+      font-size: clamp(15px, 1.35vw, 19px);
+      font-weight: 400;
+      line-height: 2.2;
+      letter-spacing: 0.08em;
     }
 
-    @keyframes cover-rise {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: none; }
+    .cover-index {
+      position: absolute;
+      left: 10%;
+      bottom: 8%;
+      font-size: 12px;
+      letter-spacing: 0.3em;
+      color: var(--text-muted);
+      opacity: var(--lunar-cue, 1);
     }
-
-    :global([data-theme='dark']) .cover-verse { color: #ddd7ce; }
-
     .cover-cue {
       position: absolute;
-      left: 50%;
-      bottom: clamp(18px, 3.4vh, 42px);
-      transform: translateX(-50%);
+      right: 10%;
+      bottom: 8%;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 8px;
-      color: var(--text-faint);
-      opacity: 0;
-      animation: cover-rise 1.2s ease 2.5s forwards;
-      pointer-events: none;
+      gap: 22px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      opacity: var(--lunar-cue, 1);
+      pointer-events: auto;
     }
+    .cover-cue:hover { color: var(--text); transform: none; }
+    .cover-cue:focus-visible { outline: 2px solid var(--text); outline-offset: 6px; opacity: 1; }
+    #selected-photo { scroll-margin-top: 0; }
 
-    .cover-cue-arrow { font-size: 14px; line-height: 1; }
-
-    .cover-cue-bar {
-      width: 1px;
-      height: 30px;
-      background: linear-gradient(to bottom, transparent, var(--text-faint) 40%, var(--text-muted));
-      animation: cue-slide 2.6s ease-in-out infinite;
-    }
-
-    @keyframes cue-slide {
-      0%   { transform: scaleY(0.3); opacity: 0; }
-      35%  { opacity: 1; }
-      100% { transform: scaleY(1); opacity: 0.15; }
+    @media (max-width: 700px) {
+      .cover { --lunar-stage-height: max(560px, 100svh); height: 280svh; }
+      .cover-intro { left: 9%; top: 16%; width: 82%; }
+      .cover-sig { font-size: clamp(72px, 19vw, 110px); margin-bottom: 20px; }
+      .cover-verse { font-size: 14px; line-height: 2; }
+      .cover-fallback { left: 58%; top: 61%; width: min(86vw, 43svh); }
+      .cover-index { left: 9%; bottom: 6%; font-size: 11px; }
+      .cover-cue { right: 9%; bottom: 6%; font-size: 13px; gap: 16px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .cover-sig { clip-path: none; animation: none; }
-      .cover-verse, .cover-cue { opacity: 1; animation: none; }
-      .cover-cue-bar { animation: none; }
+      .cover { height: auto; }
+      .cover-stage { position: relative; top: 0; height: auto; min-height: 0; }
+      .cover-art { position: relative; height: var(--lunar-stage-height); }
+      .cover-photo, .cover[data-renderer='three'] .cover-photo { position: relative; height: clamp(260px, 46vw, 600px); opacity: 1; }
+      .cover-photo-anchor { top: var(--lunar-stage-height); }
+      .cover canvas, .cover-fallback { transition: none; }
+      :global(.js) .cover-sig span { clip-path: none; animation: none; }
     }
   </style>
 
