@@ -2,7 +2,7 @@
   "name": "pessimist11.net",
   "type": "module",
   "version": "1.0.0",
-  "description": "Pessimist11's personal site — 知·思·帧·馥",
+  "description": "Pessimist11's personal site — 知·思·帧·馥·聆",
   "scripts": {
     "fonts": "node scripts/build-fonts.mjs",
     "gallery": "node scripts/optimize-gallery.mjs",

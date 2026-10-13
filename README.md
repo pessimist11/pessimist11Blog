@@ -12,6 +12,7 @@
 | **思** · THINKING | `/si/` | 生活记录、随笔与感悟 |
 | **帧** · TRAVEL | `/zhen/` | 旅行摄影、行旅地图与相册 |
 | **馥** · SCENT | `/fu/` | 香水试香与香气笔记 |
+| **聆** · MUSIC | `/ling/` | 喜欢的歌与听后感 |
 
 另外提供 [作品](https://pessimist11.pages.dev/works/) 与 [关于](https://pessimist11.pages.dev/about/) 页面。
 
@@ -27,6 +28,7 @@
 - **行旅图集**：三维地球与平面地图可切换，地点联动照片、坐标与相册；支持拖动、缩放、触控与键盘操作。
 - **地图细节**：Natural Earth 1:10m 陆地和国界、1:50m 湖泊和河流；地球按设备能力与缩放级别使用 4K 至 8K 纹理，并正确处理日期变更线与极点闭合。
 - **阅读与摄影**：首页文字栏目采用紧凑间距，摄影到正文保留更宽的衔接留白；列表悬停仅改变文字颜色，不缩放。配合按年份分组的列表、轻分隔线、低对比水印、阅读进度条、渐入动效、响应式照片及 Lightbox。
+- **唱片页**：唱片封面、歌手、专辑与听后感；点击试听才加载 Apple Music 官方播放器，关闭或切页时移除播放器。平台链接始终可用，无 JavaScript 时也可跳转收听。
 - **降级与节能**：减少动态效果时简化动画；无 JavaScript、无 WebGL 或上下文丢失时保留可读内容与静态回退。页面切换释放图形资源，离开视口或切入后台时暂停动画。
 
 ## 技术栈
@@ -70,8 +72,8 @@ src/
     moon/           # 月面、地形贴图与来源说明
     works/          # 作品页使用的本站界面图片
     worldmap.svg    # 地球与平面地图共用的生成产物
-  components/       # 主题按钮、行旅地图、列表日期
-  content/          # 知 / 思 / 帧 / 馥的 Markdown 与 schema
+  components/       # 主题按钮、行旅地图、列表日期、唱片与播放器
+  content/          # 知 / 思 / 帧 / 馥 / 聆的 Markdown 与 schema
   layouts/          # 全站布局、文章布局
   lib/              # 月球、导航月亮、地图交互、照片资源映射
   pages/            # 页面、栏目路由、RSS
@@ -103,6 +105,27 @@ tags: ['随笔']
 - 馥：`brand`、`notes`、`rating`（1–5）；正文配图放在 `src/assets/images/`，用 `/images/...` 引用。
 
 新增文章或 UI 文字后重新运行开发命令或构建，让字体子集包含新字符。详细规则见 [AGENTS.md](AGENTS.md)。
+
+## 新增歌曲
+
+在 `src/content/ling/` 新建 Markdown。必填 `title`、`artist`、`pubDate` 和 `musicUrl`；`pubDate` 为收录日期。可选 `description`、`album`、`releaseYear`、`genre`、`coverImage`、`embedUrl`。正文可写较长的听后感，在歌曲详情页展示。
+
+```yaml
+---
+title: 'Runaway'
+artist: 'Kanye West feat. Pusha T'
+album: 'My Beautiful Dark Twisted Fantasy'
+releaseYear: 2010
+pubDate: 2026-10-13
+description: '如果觉得很疲惫的话，就 Runaway 吧。'
+musicUrl: 'https://music.apple.com/us/song/runaway-feat-pusha-t/1440742918'
+embedUrl: 'https://embed.music.apple.com/us/album/my-beautiful-dark-twisted-fantasy/1440742903?i=1440742918'
+---
+```
+
+当前播放器支持 Apple Music：在歌曲的分享菜单复制嵌入代码，将其中的 `src` 地址填入 `embedUrl`，不要粘贴整段 HTML。不填写 `embedUrl` 时仅显示平台链接。`coverImage` 使用有来源的封面 URL，不填写则显示文字唱片套。歌曲文件中的首张封面来自 Apple Music 官方 oEmbed 元数据，由访客浏览器远程加载，不下载进仓库。
+
+试听长度、完整播放及地区可用性由音乐平台决定。播放器加载不出来时，可使用始终可见的平台链接。本站不托管音频、不自动播放，也不在切页后保留后台播放。
 
 ## 地图与月面资源
 

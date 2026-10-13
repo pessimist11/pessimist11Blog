@@ -13,6 +13,8 @@ const zhi = await getCollection('zhi');
 const si = await getCollection('si');
 const zhen = await getCollection('zhen');
 const fu = await getCollection('fu');
+const ling = await getCollection('ling');
+const lingPosts = ling.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 
 const zhiPosts = zhi.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 const siPosts = si.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
@@ -42,7 +44,7 @@ function slug(id: string) {
 const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
 ---
 
-<BaseLayout title="首页" immersiveHeader>
+<BaseLayout title="pessimist11" pageTitle="pessimist11" immersiveHeader>
   <Fragment slot="head">
     <link rel="preload" as="image" href={albedoSmallUrl} media="(max-width: 700px)" crossorigin="anonymous" fetchpriority="high" />
     <link rel="preload" as="image" href={normalSmallUrl} media="(max-width: 700px)" crossorigin="anonymous" fetchpriority="high" />
@@ -60,7 +62,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
           <h1 class="cover-sig" aria-label="Pessimist"><span>Pessimist</span></h1>
           <p class="cover-verse">{verse[0]}<br />{verse[1]}</p>
         </div>
-        <div class="cover-index" aria-hidden="true">知 · 思 · 帧 · 馥</div>
+        <div class="cover-index" aria-hidden="true">知 · 思 · 帧 · 馥 · 聆</div>
         <a class="cover-cue" href="#selected-photo">
           <span>向下探索</span><span aria-hidden="true">↓</span>
         </a>
@@ -189,6 +191,26 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       ))}
     </ul>
     <a href="/fu/" class="more-link">全部 <strong>馥</strong> →</a>
+  </section>
+
+  <section class="home-section reveal">
+    <div class="home-section-heading">
+      <h2 class="home-section-zh">聆</h2>
+    </div>
+    <ul class="magazine-list">
+      {lingPosts.map((post, i) => (
+        <li class="magazine-item reveal" style={`--i: ${i}`}>
+          <a href={`/ling/${slug(post.id)}/`}>
+            <div class="magazine-date"><ListDate date={post.data.pubDate} /></div>
+            <div class="magazine-content">
+              <div class="magazine-title">{post.data.title} · {post.data.artist}</div>
+              {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+    <a href="/ling/" class="more-link">全部 <strong>聆</strong> →</a>
   </section>
 
   <style>

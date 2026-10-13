@@ -168,6 +168,7 @@ nav[data-home-nav][data-hero-tone='photo'] .theme-toggle { border-color: rgb(243
 .nav-links a {
   position: relative;
   display: inline-block;
+  white-space: nowrap;
   padding: 6px 0;
   font-size: 15px;
   font-weight: 400;
@@ -934,4 +935,8 @@ footer {
   .nav-title { font-size: 14px; letter-spacing: 0.06em; }
   .nav-links { gap: 8px; }
   .nav-links a { font-size: 13px; }
+}
+
+@media (max-width: 360px) {
+  .nav-links { gap: 6px; }
 }

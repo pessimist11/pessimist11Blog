@@ -1,0 +1,51 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import MusicPlayer from './MusicPlayer.astro';
+interface Props { post: CollectionEntry<'ling'>; number?: number; detail?: boolean; }
+const { post, number = 1, detail = false } = Astro.props;
+const { title, artist, album, releaseYear, genre, description, coverImage, musicUrl, embedUrl } = post.data;
+const href = `/ling/${post.id.replace(/\.(md|mdx)$/, '')}/`;
+---
+
+<article class="record">
+  <div class="record-art">
+    <div class="record-disc" aria-hidden="true"></div>
+    <div class="record-sleeve">
+      <span class="sleeve-label" aria-hidden="true">{title}<small>{artist}</small></span>
+      {coverImage && <img src={coverImage} alt={`${album || title} · 唱片封面`} width="300" height="300" loading="lazy" decoding="async" />}
+    </div>
+  </div>
+  <div class="record-info">
+    <p class="record-index">NO. {String(number).padStart(2, '0')}{genre && <span> / {genre}</span>}</p>
+    {detail ? <h1>{title}</h1> : <h2><a href={href}>{title}</a></h2>}
+    <p class="record-artist">{artist}</p>
+    {(album || releaseYear) && <p class="record-album">{[album, releaseYear].filter(Boolean).join(' · ')}</p>}
+    {description && <p class="record-note">{description}</p>}
+    <MusicPlayer title={title} musicUrl={musicUrl} embedUrl={embedUrl} />
+    {!detail && post.body?.trim() && <a class="record-more" href={href}>听后记 →</a>}
+  </div>
+</article>
+
+<style>
+  .record { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 48px; padding: 40px 0; border-top: 1px solid var(--border); }
+  .record-art { position: relative; align-self: start; padding: 8px 30px 8px 0; }
+  .record-disc { position: absolute; width: 88%; aspect-ratio: 1; top: 50%; right: 0; transform: translateY(-50%); border-radius: 50%; background: repeating-radial-gradient(circle, #242424 0 1px, #171717 2px 4px); box-shadow: 0 4px 12px #0002; }
+  .record-disc::after { content: ''; position: absolute; inset: 36%; border: 20px solid #814439; border-radius: 50%; background: #e0d9cb; }
+  .record-sleeve { position: relative; aspect-ratio: 1; background: #792c32; color: #f2e1ce; box-shadow: 0 6px 16px #0002; }
+  .sleeve-label { position: absolute; inset: 24px; display: flex; flex-direction: column; justify-content: space-between; font-size: 28px; }
+  .sleeve-label small { font-size: 13px; }
+  img { position: relative; display: block; width: 100%; height: 100%; object-fit: cover; }
+  .record-info { min-width: 0; }
+  .record-index { color: var(--text-muted); font-size: 11px; letter-spacing: .14em; margin: 0 0 12px; text-transform: uppercase; }
+  h1, h2 { font-weight: 400; font-size: clamp(32px, 4vw, 46px); line-height: 1.15; margin: 0 0 10px; overflow-wrap: anywhere; }
+  h2 a:hover { color: var(--text-muted); }
+  .record-artist { font-size: 18px; margin: 0 0 4px; }
+  .record-album { color: var(--text-muted); font-size: 14px; margin: 0; }
+  .record-note { margin: 24px 0; font-size: 18px; line-height: 1.9; }
+  .record-more { display: inline-block; margin-top: 20px; color: var(--text-muted); font-size: 14px; }
+  @media (max-width: 700px) {
+    .record { grid-template-columns: 1fr; gap: 28px; padding: 28px 0; }
+    .record-art { width: min(300px, 90%); margin: 0 auto; }
+    .record-note { margin: 20px 0; font-size: 17px; }
+  }
+</style>

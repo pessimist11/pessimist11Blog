@@ -1,0 +1,24 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import MusicRecord from '@/components/MusicRecord.astro';
+import { getCollection } from 'astro:content';
+const songs = (await getCollection('ling')).sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+---
+
+<BaseLayout title="MUSIC" description="分享喜欢的歌，也留下听歌时的片刻心情。">
+  <div class="page-wrap reveal">
+    <a href="/" class="back-link">← 返回<span> 首页</span></a>
+    <header class="music-heading">
+      <h1 class="page-heading-zh">聆</h1>
+      <span>{String(songs.length).padStart(2, '0')} 首收藏</span>
+    </header>
+    <p class="section-intro">分享喜欢的歌，也留下听歌时的片刻心情。</p>
+    {songs.map((post, index) => <MusicRecord post={post} number={songs.length - index} />)}
+    {!songs.length && <p>唱片架还空着，等一首喜欢的歌。</p>}
+  </div>
+</BaseLayout>
+
+<style>
+  .music-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+  .music-heading span { color: var(--text-muted); font-size: 12px; letter-spacing: .08em; }
+</style>

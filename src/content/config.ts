@@ -20,9 +20,32 @@ const postCollection = defineCollection({
   }),
 });
 
+const appleMusicUrl = (host: string) => z.string().url().refine(value => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === host && !url.username && !url.password && !url.port;
+  } catch { return false; }
+}, '请使用 Apple Music 官方 HTTPS 链接');
+
+const musicCollection = defineCollection({
+  schema: z.object({
+    title: z.string(),
+    artist: z.string(),
+    pubDate: z.date(),
+    description: z.string().optional(),
+    album: z.string().optional(),
+    releaseYear: z.number().int().optional(),
+    genre: z.string().optional(),
+    coverImage: z.string().url().optional(),
+    musicUrl: appleMusicUrl('music.apple.com'),
+    embedUrl: appleMusicUrl('embed.music.apple.com').optional(),
+  }),
+});
+
 export const collections = {
   zhi: postCollection,
   si: postCollection,
   zhen: postCollection,
   fu: postCollection,
+  ling: musicCollection,
 };

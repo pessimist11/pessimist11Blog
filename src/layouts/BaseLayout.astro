@@ -26,7 +26,7 @@ export interface Props {
   immersiveHeader?: boolean;
 }
 
-const { title, description, image, type = 'website', pubDate, immersiveHeader = false } = Astro.props;
+const { title, pageTitle: customPageTitle, description, image, type = 'website', pubDate, immersiveHeader = false } = Astro.props;
 
 const siteName = 'pessimist11';
 const siteUrl = Astro.site ?? new URL('https://pessimist11.pages.dev');
@@ -34,7 +34,7 @@ const authorName = 'pessimist11 (saki)';
 const githubUrl = 'https://github.com/pessimist11';
 const defaultDescription = '记录无意义的生命中可能有意义的瞬间';
 const ogDescription = description || defaultDescription;
-const pageTitle = `${title} — ${siteName}`;
+const pageTitle = customPageTitle ?? `${title} — ${siteName}`;
 const ogUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const canonical = ogUrl;
 const defaultOg = new URL('/og.jpg', siteUrl).toString();
@@ -49,7 +49,7 @@ const graph: any[] = [
     url: siteUrl,
     image: defaultOg,
     description: defaultDescription,
-    knowsAbout: ['技术', '摄影', '随笔', '香水'],
+    knowsAbout: ['技术', '摄影', '随笔', '香水', '音乐'],
     sameAs: [githubUrl],
   },
   {
@@ -193,6 +193,7 @@ const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
           <a href="/si/">思</a>
           <a href="/zhen/">帧</a>
           <a href="/fu/">馥</a>
+          <a href="/ling/">聆</a>
           <a href="/works/">作品</a>
           <a href="/about/">关于</a>
           <ThemeToggle />

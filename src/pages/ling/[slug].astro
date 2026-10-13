@@ -1,0 +1,28 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import MusicRecord from '@/components/MusicRecord.astro';
+import { getCollection } from 'astro:content';
+export async function getStaticPaths() {
+  const songs = (await getCollection('ling')).sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+  return songs.map((post, index) => ({
+    params: { slug: post.id.replace(/\.(md|mdx)$/, '') },
+    props: { post, number: songs.length - index },
+  }));
+}
+const { post, number } = Astro.props;
+const { Content } = await post.render();
+---
+
+<BaseLayout title={post.data.title} description={post.data.description} image={post.data.coverImage} type="article" pubDate={post.data.pubDate}>
+  <div class="page-wrap reveal">
+    <a href="/ling/" class="back-link">← 返回<span> 聆</span></a>
+    <MusicRecord post={post} number={number} detail />
+    {post.body?.trim() && <div class="article-body listening-note"><Content /></div>}
+    <p class="shared-date">收录于 <time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString('zh-CN')}</time></p>
+  </div>
+</BaseLayout>
+
+<style>
+  .listening-note { max-width: var(--content-width); margin: 24px auto; }
+  .shared-date { margin-top: 32px; color: var(--text-muted); font-size: 12px; }
+</style>

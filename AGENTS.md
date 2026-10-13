@@ -43,6 +43,7 @@ npm run preview
 | 思 | `si` | `src/content/si/` | 生活记录与随笔 |
 | 帧 | `zhen` | `src/content/zhen/` | 旅行摄影 |
 | 馥 | `fu` | `src/content/fu/` | 香水试香与评价 |
+| 聆 | `ling` | `src/content/ling/` | 音乐分享与听后感 |
 
 新增文章通常只需在对应目录添加 Markdown；新增摄影或配图时同时加入源图。不手工登记列表、详情、首页、RSS 或 sitemap。
 
@@ -62,6 +63,8 @@ tags: ['随笔']
 `pubDate` 必须是不带引号的 YAML 日期，当前 schema 使用 `z.date()`。标题沿用单引号风格。
 
 可选通用字段为 `description`、`tags`、`coverImage`、`coverImages`。帧使用 `location`、`camera`、`lat`、`lng`；馥使用 `brand`、`notes`、`rating`（1–5）。知、思的文章布局不渲染封面，不必为它们配置封面字段。
+
+聆使用独立 schema：必填 `title`、`artist`、`pubDate`（收录日期）、`musicUrl`，可选 `description`、`album`、`releaseYear`、`genre`、`coverImage`、`embedUrl`。当前只支持 Apple Music 官方 HTTPS 歌曲链接与嵌入地址；正文放长听后感。封面使用有来源的 URL，缺省为文字唱片套；不下载或托管歌曲音频。播放器按需加载，关闭或切页时移除，保留无 JavaScript 可访问的平台链接。
 
 帧的地图只收录有效坐标，纬度范围 −90 到 90，经度 −180 到 180。照片源文件放 `src/assets/gallery/`，frontmatter 和正文保留 `/gallery/...` 稳定路径；其他正文配图放 `src/assets/images/`，以 `/images/...` 引用。不要把生成图当成源图维护。
 
