@@ -31,7 +31,7 @@ pessimist11 是一个基于 Astro 5 静态生成的个人站点，发布技术�
 
 ## 其他页面
 
-- 作品：https://pessimist11.pages.dev/works/
+- 作（WORKS，作品展示）：https://pessimist11.pages.dev/works/
 - 关于：https://pessimist11.pages.dev/about/
 
 ## 浏览体验
