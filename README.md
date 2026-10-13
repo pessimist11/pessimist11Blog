@@ -13,8 +13,9 @@
 | **帧** · TRAVEL | `/zhen/` | 旅行摄影、行旅地图与相册 |
 | **馥** · SCENT | `/fu/` | 香水试香与香气笔记 |
 | **聆** · MUSIC | `/ling/` | 喜欢的歌与听后感 |
+| **作** · WORKS | `/works/` | 项目与作品展示 |
 
-另外提供 [作 · WORKS](https://pessimist11.pages.dev/works/)（作品展示）与 [关于](https://pessimist11.pages.dev/about/) 页面。
+另外提供 [关于](https://pessimist11.pages.dev/about/) 页面。
 
 作品页将本站作为一个完整项目展示，包含月亮首页、行旅图集与相册的真实界面图片、体验入口、源码链接和设计实现说明。展示图源文件位于 `src/assets/works/`，由本站实际页面截取，构建时由 Astro 优化。
 
