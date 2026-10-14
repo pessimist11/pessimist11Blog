@@ -148,7 +148,9 @@ embedUrl: 'https://embed.music.apple.com/us/album/my-beautiful-dark-twisted-fant
 - `dist/`、`.astro/`、`node_modules/`、`public/fonts/`、`public/gallery/`、`public/images/`、本地预览截图和 `.env` 不提交。月面源资源、署名字体许可、地图 SVG 和锁文件按实际变更提交。
 - 提交信息沿用 `feat:`、`fix:`、`docs:`、`chore:` 前缀；用户指定提交文案时优先使用。
 - push 前核对分支、远端及提交范围，推送后验证远端提交。出现分支分歧时处理普通合并或变基，不擅自强推、改写历史。
-- Cloudflare Pages 的构建命令为 `npm run build`，输出目录 `dist`。最终反馈说明提交、push 和部署各自的实际状态。
+- Cloudflare Pages 的构建命令为 `npm run build`，输出目录 `dist`。构建的正式站点地址为 `https://icecode.me`；Pages 默认地址 `https://pessimist11.pages.dev` 仍是绑定目标。
+- 自定义主域名需先在同一 Cloudflare 账户中添加域名，在注册商处填写 Cloudflare 分配的 DNS 服务器，再在现有 Pages 项目中绑定 `icecode.me`。更换站点地址前确认自定义域名为 Active 且 HTTPS 正常；迁移后可将旧 Pages 地址重定向到新域名，并保留路径与查询参数。
+- 最终反馈说明提交、push 和部署各自的实际状态。
 
 ## 九、资源来源与许可
 

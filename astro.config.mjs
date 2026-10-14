@@ -3,7 +3,7 @@ import sitemap from '@astrojs/sitemap';
 import rehypeGallery from './scripts/rehype-gallery.mjs';
 
 export default defineConfig({
-  site: 'https://pessimist11.pages.dev',
+  site: 'https://icecode.me',
   trailingSlash: 'always',
   integrations: [
     sitemap({

@@ -13,26 +13,26 @@ pessimist11 是一个基于 Astro 5 静态生成的个人站点，发布技术�
 - 作者：pessimist11（saki）
 - 联系邮箱：icecode19@gmail.com
 - GitHub：https://github.com/pessimist11
-- RSS：https://pessimist11.pages.dev/rss.xml
+- RSS：https://icecode.me/rss.xml
 
 ## 栏目
 
-- 知（TECH，技术分享）：https://pessimist11.pages.dev/zhi/
+- 知（TECH，技术分享）：https://icecode.me/zhi/
   - 编程、框架、工程实践。
-- 思（THINKING，随笔感悟）：https://pessimist11.pages.dev/si/
+- 思（THINKING，随笔感悟）：https://icecode.me/si/
   - 生活记录与随想。
-- 帧（TRAVEL，旅行摄影）：https://pessimist11.pages.dev/zhen/
+- 帧（TRAVEL，旅行摄影）：https://icecode.me/zhen/
   - 城市漫步与风光，含可切换地球 / 平面视图的交互行旅图集与照片画廊。
-- 馥（SCENT，香气笔记）：https://pessimist11.pages.dev/fu/
+- 馥（SCENT，香气笔记）：https://icecode.me/fu/
   - 香水试香与评价。
 
-- 聆（MUSIC，音乐分享）：https://pessimist11.pages.dev/ling/
+- 聆（MUSIC，音乐分享）：https://icecode.me/ling/
   - 喜欢的歌与听后感，提供按需加载的 Apple Music 播放器和平台链接。
 
 ## 其他页面
 
-- 作（WORKS，作品展示）：https://pessimist11.pages.dev/works/
-- 关于：https://pessimist11.pages.dev/about/
+- 作（WORKS，作品展示）：https://icecode.me/works/
+- 关于：https://icecode.me/about/
 
 ## 浏览体验
 
