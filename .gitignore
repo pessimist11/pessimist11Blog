@@ -14,3 +14,6 @@ public/fonts/
 .env.*
 !.env.example
 .moon-preview/
+
+# 本地维护规范
+/AGENTS.md

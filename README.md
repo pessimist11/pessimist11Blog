@@ -20,7 +20,3 @@
 | [**馥** · SCENT](https://icecode.me/fu/) | 香水试香与香气笔记 |
 | [**聆** · MUSIC](https://icecode.me/ling/) | 喜欢的歌与听后感 |
 | [**作** · WORKS](https://icecode.me/works/) | 项目与作品展示 |
-
----
-
-写作与维护说明见 [AGENTS.md](AGENTS.md)。
