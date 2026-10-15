@@ -4,6 +4,7 @@ import ListDate from '@/components/ListDate.astro';
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import { galleryImage } from '@/lib/gallery';
+import { homePhotos } from '@/data/home-photos';
 import albedoSmallUrl from '../assets/moon/lroc-albedo.webp?url';
 import albedoLargeUrl from '../assets/moon/lroc-albedo-4k.webp?url';
 import normalSmallUrl from '../assets/moon/lola-normal-2k.webp?url';
@@ -22,18 +23,23 @@ const fuPosts = fu.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getT
 
 const zhenPosts = zhen.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()).slice(0, 3);
 
-// 收集封面时保留所属相册，构建时随机选一张。
-// 只取横构图：首页大图以全屏宽幅呈现，
-// 竖构图会被裁掉大半，只剩中间一条，观感很差。
-const allPhotos = zhen.flatMap(album => {
-  const paths = album.data.coverImages?.length ? album.data.coverImages : album.data.coverImage ? [album.data.coverImage] : [];
-  return paths.flatMap(path => {
-    const image = galleryImage(path);
-    return image ? [{ image, album }] : [];
-  });
+// 只从人工精选池中构建时等概率抽取，不回退到全部相册或封面。
+// 名单过期时明确报错，避免照片删除或相册改名后悄悄扩大候选范围。
+if (!homePhotos.length) throw new Error('首页精选照片池不能为空，请维护 src/data/home-photos.ts');
+const seenPhotos = new Set<string>();
+const photoCandidates = homePhotos.map(photo => {
+  const album = zhen.find(entry => slug(entry.id) === photo.albumId);
+  const image = galleryImage(photo.path);
+  if (!album || !image) throw new Error(`首页精选照片的相册或图片不存在：${photo.path}`);
+  const albumCovers = [album.data.coverImage, ...(album.data.coverImages ?? [])];
+  if (!albumCovers.includes(photo.path) && !album.body.includes(photo.path)) {
+    throw new Error(`首页精选照片未被所属相册 ${photo.albumId} 引用：${photo.path}`);
+  }
+  if (image.width <= image.height) throw new Error(`首页精选照片须为横图：${photo.path}`);
+  if (seenPhotos.has(photo.path)) throw new Error(`首页精选照片重复：${photo.path}`);
+  seenPhotos.add(photo.path);
+  return { ...photo, image, album };
 });
-const landscapePhotos = allPhotos.filter(({ image }) => image.width >= image.height);
-const photoCandidates = landscapePhotos.length ? landscapePhotos : allPhotos;
 const featuredPhoto = photoCandidates[Math.floor(Math.random() * photoCandidates.length)];
 
 function slug(id: string) {
@@ -70,7 +76,7 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
       <div class="cover-photo">
         {featuredPhoto && <Image
           src={featuredPhoto.image}
-          alt={`${featuredPhoto.album.data.title} · 行旅摄影`}
+          alt={featuredPhoto.alt}
           formats={['avif', 'webp']}
           widths={[480, 960, 1600]}
           sizes="100vw"
