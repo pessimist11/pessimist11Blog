@@ -154,14 +154,15 @@ const particleVertex = /* glsl */ `
     vec3 shell = uCenter + normal * uRadius * (1.003 + lift * 0.045);
     shell += vec3(-normal.y, normal.x, 0.25) * sin(lift * 3.14159) * uRadius * 0.045;
 
-    // Peel locally first, then carry the same grains into horizontal cloud lanes.
+    // Peel locally first, then spread across viewport-wide cloud lanes.
+    // Extend past both edges so wide screens never expose the ribbon's ends.
     float travel = smoothstep(0.045, 0.46, age);
     float lane = floor(aSeed.z * 5.0);
-    float flowX = aSeed.x * 1.2;
+    float flowX = aSeed.x * 1.12 - 0.06;
     vec3 stream = vec3(
-      uCenter.x - uRadius * 0.48 - flowX * uViewport.x,
-      (sin(flowX * 7.1 + lane * 0.38 + uTime * 0.018) * 0.055 +
-        (lane - 2.0) * 0.032 + (aSeed.y - 0.5) * 0.08 - 0.09) * uViewport.y,
+      (flowX - 0.5) * uViewport.x,
+      (sin(flowX * 6.283 - 0.65 + lane * 0.45 + uTime * 0.018) * (0.07 + lane * 0.016) +
+        (lane - 2.0) * 0.042 + (aSeed.y - 0.5) * 0.10 - 0.035) * uViewport.y,
       (aSeed.z - 0.5) * uRadius * 0.65);
     vec3 point = mix(shell, stream, travel);
     float wind = fract(aSeed.z + uTime * 0.045);
