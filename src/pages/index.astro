@@ -209,7 +209,8 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
           <a href={`/ling/${slug(post.id)}/`}>
             <div class="magazine-date"><ListDate date={post.data.pubDate} /></div>
             <div class="magazine-content">
-              <div class="magazine-title">{post.data.title} · {post.data.artist}</div>
+              <div class="magazine-title">{post.data.title}</div>
+              <div class="home-song-artist">{post.data.artist}</div>
               {post.data.description && <div class="magazine-desc">{post.data.description}</div>}
             </div>
           </a>
@@ -220,6 +221,14 @@ const verse = ['记录无意义的生命中', '可能有意义的瞬间'];
   </section>
 
   <style>
+    .home-song-artist {
+      color: var(--list-text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+    .home-song-artist + .magazine-desc { margin-top: 6px; }
+
     @font-face {
       font-family: 'Caveat';
       src: url('../assets/fonts/caveat-signature.woff2') format('woff2');
